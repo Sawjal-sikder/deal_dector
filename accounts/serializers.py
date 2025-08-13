@@ -16,9 +16,6 @@ class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=CustomUser.objects.all(), message="email already exists")]
     )
-    phone_number = serializers.CharField(
-        validators=[UniqueValidator(queryset=CustomUser.objects.all(), message="phone number already exists")]
-    )
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
 
@@ -37,14 +34,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create_user(**validated_data)
         user.is_active = True
         user.save() 
-
-        # # Generate and email verification code
-        # active_code = PasswordResetCode.objects.create(user=user)
-        # user.email_user(
-        #     "Email Verification Code",
-        #     f"Your verification code is: {active_code.code}"
-        # )
-
         return user
 
 

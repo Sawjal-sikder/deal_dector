@@ -10,10 +10,7 @@ class CustomUserManager(BaseUserManager):
     def create_user(self, email, full_name, phone_number, password=None, **extra_fields):
         if not email:
             raise ValueError('Email must be set')
-        if not full_name:
-            raise ValueError('Full name must be set')
-        if not phone_number:
-            raise ValueError('Phone number must be set')
+        
 
         email = self.normalize_email(email)
         user = self.model(email=email, full_name=full_name, phone_number=phone_number, **extra_fields)
@@ -36,15 +33,15 @@ class CustomUserManager(BaseUserManager):
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
-    full_name = models.CharField(max_length=150)
-    phone_number = models.CharField(max_length=20, unique=True)
+    full_name = models.CharField(max_length=150, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['full_name', 'phone_number']
+    # REQUIRED_FIELDS = ['full_name', 'phone_number']
 
     def __str__(self):
         return self.full_name
