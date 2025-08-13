@@ -32,8 +32,22 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('password2')
         # Set is_active=False during creation
         user = CustomUser.objects.create_user(**validated_data)
-        user.is_active = True
+        user.is_active = False
         user.save() 
+        # generate otp
+        active_code = PasswordResetCode.objects.create(user=user)
+        Celery_send_mail.delay(
+            email=user.email,
+            subject="Activate Your Account – Action Required",
+            message=(
+                f"Hello Sir/Madam,\n\n"
+                f"Thank you for registering. Please use the code below to activate your account:\n\n"
+                f"Activation Code: {active_code.code}\n\n"
+                f"If you didn’t request this, you can ignore this email.\n\n"
+                f"Thanks,\n"
+                f"Support Team"
+            )
+        )
         return user
 
 
@@ -140,7 +154,34 @@ class VerifyResetCodeSerializer(serializers.Serializer):
         self.reset_code = reset_code
         return attrs
     
-    
+class UserRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+
+    def validate(self, attrs):
+        try:
+            user = CustomUser.objects.get(email=attrs['email'])
+            reset_code = PasswordResetCode.objects.get(user=user, code=attrs['code'], is_used=False)
+        except PasswordResetCode.DoesNotExist:
+            raise serializers.ValidationError("Invalid or expired verification code.")
+
+        if reset_code.is_expired():
+            raise serializers.ValidationError("Verification code has expired.")
+
+        self.user = user
+        self.reset_code = reset_code
+        return attrs
+
+    def save(self):
+        # Activate user
+        self.user.is_active = True
+        self.user.save()
+        # Mark code as used
+        self.reset_code.is_used = True
+        self.reset_code.save()
+        return self.user
+
+
 class VerfifyCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=6)
@@ -164,7 +205,6 @@ class VerfifyCodeSerializer(serializers.Serializer):
         self.reset_code.is_used = False
         self.reset_code.save()
         return self.user
-
 
 
 class SetNewPasswordSerializer(serializers.Serializer):

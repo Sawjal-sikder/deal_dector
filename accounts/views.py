@@ -13,7 +13,7 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         user_data = self.get_serializer(user).data  
-        return Response({"message": "Your account has been created successfully. You can now log in."}, status=status.HTTP_201_CREATED)
+        return Response({"message": "Your account was created successfully. Please activate your account using the OTP sent to your email to log in."}, status=status.HTTP_201_CREATED)
 
 class VerifyCodeView(generics.CreateAPIView):
     serializer_class = VerifyActiveCodeSerializer
@@ -51,6 +51,20 @@ class ForgotPasswordView(generics.GenericAPIView):
         return Response({"message": "Reset code sent to email."}, status=status.HTTP_200_OK)
     
     
+class UserRegistrationVerifyCodeView(generics.GenericAPIView):
+    serializer_class = UserRegistrationSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Save activates the user and marks OTP as used
+        serializer.save()
+
+        return Response({"message": "Account activated successfully."}, status=status.HTTP_200_OK)
+
+       
 class VerifyCodeView(generics.GenericAPIView):
     serializer_class = VerfifyCodeSerializer
     permission_classes = [permissions.AllowAny]
