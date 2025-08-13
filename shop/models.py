@@ -12,5 +12,5 @@ class Supershop(TranslatableModel):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.safe_translation_getter('super_shop_name', any_language=True)
-
+        # Make sure to return a string, even if no name exists
+        return self.safe_translation_getter('super_shop_name', any_language=True) or "Unnamed Shop"
