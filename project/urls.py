@@ -10,6 +10,7 @@ from django.http import JsonResponse
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('accounts.urls')),
+    path('api/shop/', include('shop.urls')),
     path('accounts/', include('allauth.urls')),
     path('', lambda request: HttpResponseRedirect('/api/auth/register/')),
 

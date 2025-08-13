@@ -47,9 +47,12 @@ INSTALLED_APPS = [
     # dj-rest-auth
     'dj_rest_auth',
     'dj_rest_auth.registration',
-     'rest_framework.authtoken',
+    'rest_framework.authtoken',
+    'parler',
+    'parler_rest',
     # for app
     'accounts',
+    'shop',
     
 ]
 
@@ -294,3 +297,19 @@ USE_TZ = True
 TIME_ZONE = 'Asia/Dhaka'
 
 
+
+LANGUAGES = [
+    ('en', 'English'),
+    ('nl', 'Dutch'),
+]
+
+PARLER_LANGUAGES = {
+    None: (
+        {'code': 'en'},
+        {'code': 'nl'},
+    ),
+    'default': {
+        'fallbacks': ['en'],
+        'hide_untranslated': False,
+    }
+}
