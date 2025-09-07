@@ -35,71 +35,23 @@ class CategorySerializer(TranslatableModelSerializer):
                 raise serializers.ValidationError({'translations': 'Invalid JSON format'})
         return super().to_internal_value(data)
 
-class ProductImageCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductImage
-        fields = ['image']
-        extra_kwargs = {
-            'image': {'required': True, 'allow_null': False}
-        }
-
 class ProductPriceCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductPrice
         fields = ['shop', 'price']
 
-class ProductListSerializer(TranslatableModelSerializer):
-    translations = TranslatedFieldsField(shared_model=Product)
-    prices = ProductPriceCreateSerializer(many=True, read_only=True)
-    images = ProductImageCreateSerializer(many=True, read_only=True)
 
-    class Meta:
-        model = Product
-        fields = ['id', 'category', 'translations', 'prices', 'images']
-
-class ProductCreateSerializer(TranslatableModelSerializer):
+class ProductSerializer(TranslatableModelSerializer):
     translations = TranslatedFieldsField(shared_model=Product)
     prices = ProductPriceCreateSerializer(many=True, required=False)
-    images = serializers.ListField(
-        child=serializers.ImageField(),
-        required=False,
-        write_only=True
-    )
 
     class Meta:
         model = Product
-        fields = ['category', 'translations', 'prices', 'images']
-
-    def to_internal_value(self, data):
-        """Parse JSON strings before validation."""
-        if 'translations' in data and isinstance(data['translations'], str):
-            try:
-                data['translations'] = json.loads(data['translations'])
-            except json.JSONDecodeError:
-                raise serializers.ValidationError({'translations': 'Invalid JSON'})
-
-        if 'prices' in data and isinstance(data['prices'], str):
-            try:
-                data['prices'] = json.loads(data['prices'])
-            except json.JSONDecodeError:
-                raise serializers.ValidationError({'prices': 'Invalid JSON'})
-
-        return super().to_internal_value(data)
-
+        fields = ['id', 'translations', 'category', 'uom', 'prices']
+        
     def create(self, validated_data):
-        prices_data = validated_data.pop('prices', [])
-        images = validated_data.pop('images', [])
-
-        # Create product first
-        product = super().create(validated_data)
-
-        # Create prices
-        for price_data in prices_data:
-            ProductPrice.objects.create(product=product, **price_data)
-
-        # Create images
-        for image_file in images:
-            img_obj = ProductImage.objects.create(image=image_file)
-            product.images.add(img_obj)
-
-        return product
+            prices_data = validated_data.pop('prices')
+            product = Product.objects.create(**validated_data)
+            for price_data in prices_data:
+                ProductPrice.objects.create(product=product, **price_data)
+            return product

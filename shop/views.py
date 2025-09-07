@@ -1,4 +1,5 @@
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from rest_framework.permissions import AllowAny
 from rest_framework import generics
 from .models import *
 from .serializers import *
@@ -16,20 +17,16 @@ class CategoryListCreateView(generics.ListCreateAPIView):
 
 
 class ProductListView(generics.ListCreateAPIView):
-    queryset = Product.objects.all().prefetch_related('prices__shop', 'images', 'category')
-    parser_classes = (MultiPartParser, FormParser, JSONParser)
-    permission_classes = []  # Temporarily disable authentication for testing
-    
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return ProductCreateSerializer
-        return ProductListSerializer
+    queryset = Product.objects.all().prefetch_related('prices__shop', 'category')
+    # parser_classes = (MultiPartParser, FormParser, JSONParser)
+    serializer_class = ProductSerializer
+    permission_classes = [AllowAny] 
 
 
 
 class ProductDetailView(generics.RetrieveAPIView):
-    queryset = Product.objects.all().prefetch_related('prices__shop', 'images', 'category')
-    serializer_class = ProductCreateSerializer
+    queryset = Product.objects.all().prefetch_related('prices__shop', 'category')
+    serializer_class = ProductSerializer
     
     
     

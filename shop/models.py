@@ -31,22 +31,15 @@ class Product(TranslatableModel):
     translations = TranslatedFields(
         product_name=models.CharField(max_length=255),
         description=models.TextField(),
-        uom=models.CharField(max_length=50)  # Unit of Measure
     )
+    uom=models.CharField(max_length=50, blank=True, null=True)  # Unit of Measure
     category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE)
-    images = models.ManyToManyField('ProductImage', related_name='products', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.safe_translation_getter('product_name', any_language=True) or "Unnamed Product"
 
-
-class ProductImage(models.Model):
-    image = models.ImageField(upload_to='product_images/')
-
-    def __str__(self):
-        return self.image.url if self.image else "No Image"
 
 
 class ProductPrice(models.Model):
@@ -56,3 +49,5 @@ class ProductPrice(models.Model):
 
     def __str__(self):
         return f"{self.shop} - {self.product}: {self.price}"
+
+
