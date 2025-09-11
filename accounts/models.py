@@ -18,7 +18,7 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, full_name, phone_number, password=None, **extra_fields):
+    def create_superuser(self, email, full_name=None, phone_number=None, password=None, **extra_fields):
         extra_fields.setdefault('is_active', True)
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
@@ -29,6 +29,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True.')
 
         return self.create_user(email, full_name, phone_number, password, **extra_fields)
+
     
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
@@ -41,7 +42,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
-    # REQUIRED_FIELDS = ['full_name', 'phone_number']
+    REQUIRED_FIELDS = ['full_name', 'phone_number']
 
     def __str__(self):
         return self.full_name
