@@ -86,23 +86,6 @@ class ProductPriceCreateView(generics.ListCreateAPIView):
 
 # list of category wise products
 class CategoryProductsView(generics.ListAPIView):
-    queryset = Product.objects.all().select_related('category').prefetch_related(
-        'prices__shop',
-        'translations',
-        'category__translations'
-    )
-    serializer_class = ProductListbyCategorySerializer
+    queryset = Category.objects.all().prefetch_related('products__prices__shop')
+    serializer_class = CategoryProductsSerializer
     http_method_names = ['get']
-
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = [
-        'translations__product_name',
-        'translations__description',
-        'category__translations__category_name'
-    ]
-    ordering_fields = [
-        'translations__product_name',
-        'created_at',
-        'updated_at'
-    ]
-    ordering = ['-created_at']
