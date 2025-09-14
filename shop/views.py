@@ -52,11 +52,9 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ProductListView(generics.ListCreateAPIView):
     queryset = Product.objects.all().prefetch_related('prices__shop', 'category')
-    # parser_classes = (MultiPartParser, FormParser, JSONParser)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
     serializer_class = ProductSerializer
-    permission_classes = [AllowAny] 
-
-
+    
 
 class ProductDetailView(generics.RetrieveAPIView):
     queryset = Product.objects.all().prefetch_related('prices__shop', 'category')
