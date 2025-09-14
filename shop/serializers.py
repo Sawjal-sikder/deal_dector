@@ -64,7 +64,22 @@ class SupershopUpdateSerializer(TranslatableModelSerializer):
                     raise serializers.ValidationError(f"Language '{lang_code}' should contain field dictionary")
                     
         return value
-        return value
+
+
+class CategoryUseListSerializer(serializers.ModelSerializer):
+    translations = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ['id', 'translations']
+
+    def get_translations(self, obj):
+        data = {}
+        for trans in obj.translations.all():
+            data[trans.language_code] = {
+                "category_name": trans.category_name
+            }
+        return data
 
 
 class CategorySerializer(TranslatableModelSerializer):
@@ -124,12 +139,30 @@ class CategoryUpdateSerializer(TranslatableModelSerializer):
                     
         return value
 
+class ProductPriceUseListSerializer(serializers.ModelSerializer):
+    shop = serializers.CharField(source='shop.super_shop_name', read_only=True)
+    class Meta:
+        model = ProductPrice
+        fields = ['id', 'shop', 'price']
+
+
 class ProductPriceCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductPrice
         fields = ['shop', 'price']
 
+# Product List Serializer only for listing products
+class ProductListSerializer(TranslatableModelSerializer):
+    translations = TranslatedFieldsField(shared_model=Product)
+    prices = ProductPriceUseListSerializer(many=True, required=False)
+    category = CategoryUseListSerializer(read_only=True)
 
+    class Meta:
+        model = Product
+        # fields = ['id', 'translations', 'category', 'product_image1', 'product_image2', 'product_image3', 'uom', 'prices']
+        fields = "__all__"
+
+# create product serializer
 class ProductSerializer(TranslatableModelSerializer):
     translations = TranslatedFieldsField(shared_model=Product)
     prices = ProductPriceCreateSerializer(many=True, required=False)
@@ -220,3 +253,24 @@ class ProductSerializer(TranslatableModelSerializer):
         for price_data in prices_data:
             ProductPrice.objects.create(product=product, **price_data)
         return product
+
+
+
+
+
+# product list of category wise products
+class ProductListbyCategorySerializer(TranslatableModelSerializer):
+    translations = TranslatedFieldsField(shared_model=Product)
+    prices = ProductPriceUseListSerializer(many=True, required=False)
+
+    class Meta:
+        model = Product
+        fields = "__all__"
+
+class CategoryProductsSerializer(serializers.ModelSerializer):
+    products = ProductListbyCategorySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Category
+        fields = ['id', 'category_name', 'products']
+       

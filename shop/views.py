@@ -1,9 +1,10 @@
-from rest_framework.response import Response
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from .pagination import StandardResultsSetPagination
 from rest_framework.permissions import AllowAny
-from rest_framework import generics
-from .models import *
+from rest_framework.response import Response
+from rest_framework import generics, filters
 from .serializers import *
+from .models import *
 
 class SupershopListCreateView(generics.ListCreateAPIView):
     queryset = Supershop.objects.all()
@@ -55,6 +56,22 @@ class ProductListView(generics.ListCreateAPIView):
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     serializer_class = ProductSerializer
     
+class ProductView(generics.ListAPIView):
+    queryset = Product.objects.all().prefetch_related('prices__shop', 'category')
+    serializer_class = ProductListSerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['translations__product_name', 'translations__description', 'category__translations__category_name']
+    ordering_fields = ['translations__product_name', 'created_at', 'updated_at']
+    ordering = ['-created_at']  
+    
+class ProductDetailsonlyView(generics.RetrieveAPIView):
+    serializer_class = ProductListSerializer
+    queryset = Product.objects.all().prefetch_related('prices__shop', 'category')
+    http_method_names = ['get']
+
+
+
 
 class ProductDetailView(generics.RetrieveAPIView):
     queryset = Product.objects.all().prefetch_related('prices__shop', 'category')
@@ -65,3 +82,27 @@ class ProductDetailView(generics.RetrieveAPIView):
 class ProductPriceCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductPriceCreateSerializer
+
+
+# list of category wise products
+class CategoryProductsView(generics.ListAPIView):
+    queryset = Product.objects.all().select_related('category').prefetch_related(
+        'prices__shop',
+        'translations',
+        'category__translations'
+    )
+    serializer_class = ProductListbyCategorySerializer
+    http_method_names = ['get']
+
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = [
+        'translations__product_name',
+        'translations__description',
+        'category__translations__category_name'
+    ]
+    ordering_fields = [
+        'translations__product_name',
+        'created_at',
+        'updated_at'
+    ]
+    ordering = ['-created_at']
