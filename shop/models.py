@@ -32,7 +32,10 @@ class Product(TranslatableModel):
         product_name=models.CharField(max_length=255),
         description=models.TextField(),
     )
-    uom=models.CharField(max_length=50, blank=True, null=True)  # Unit of Measure
+    uom=models.CharField(max_length=50, blank=True, null=True)  
+    product_image1 = models.ImageField(upload_to='product_images/', null=True, blank=True)
+    product_image2 = models.ImageField(upload_to='product_images/', null=True, blank=True)
+    product_image3 = models.ImageField(upload_to='product_images/', null=True, blank=True)
     category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

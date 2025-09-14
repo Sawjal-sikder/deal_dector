@@ -136,7 +136,7 @@ class ProductSerializer(TranslatableModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'translations', 'category', 'uom', 'prices']
+        fields = ['id', 'translations', 'category', 'product_image1', 'product_image2', 'product_image3', 'uom', 'prices']
 
     def to_internal_value(self, data):
         """
