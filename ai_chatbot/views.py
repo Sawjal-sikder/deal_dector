@@ -14,6 +14,17 @@ class GenerateRecipeView(APIView):
             
             if serializers.is_valid():
                   recipe_text = serializers.validated_data["recipe_text"]
-                  data = main(recipe_text)
-                  return Response(data, status=status.HTTP_200_OK)
+                  
+                  # Call the Celery task asynchronously
+                  task_result = main.delay(recipe_text)
+                  
+                  try:
+                        # Wait for the result with a timeout
+                        data = task_result.get(timeout=60)  # 60 seconds timeout
+                        return Response(data, status=status.HTTP_200_OK)
+                  except Exception as e:
+                        return Response(
+                              {"error": f"Task execution failed: {str(e)}"}, 
+                              status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                        )
             return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
