@@ -1,5 +1,7 @@
 from django.db import models
 from parler.models import TranslatableModel, TranslatedFields
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 class Supershop(TranslatableModel):
     translations = TranslatedFields(
@@ -54,3 +56,11 @@ class ProductPrice(models.Model):
         return f"{self.shop} - {self.product}: {self.price}"
 
 
+
+class Favorite(models.Model):
+    user = models.ForeignKey(User, related_name='favorites', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, related_name='favorites', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Favorite: {self.user} - {self.product}"

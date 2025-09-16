@@ -13,4 +13,6 @@ urlpatterns = [
     path('category-products/', CategoryProductsView.as_view(), name='category-products'),
     path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
     path('prices/', ProductPriceCreateView.as_view(), name='product-price-create'),
+    path('favorites/<product_id>/', FavoriteCreateDeleteView.as_view(), name='favorite-create-delete'),
+    path('favorites/', FavoriteView.as_view(), name='favorite-list'),
 ]

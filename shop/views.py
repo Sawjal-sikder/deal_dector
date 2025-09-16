@@ -1,8 +1,11 @@
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from .pagination import StandardResultsSetPagination
 from rest_framework.permissions import AllowAny
+from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import generics, filters
+from rest_framework.views import APIView
+from rest_framework import status
 from .serializers import *
 from .models import *
 
@@ -89,3 +92,40 @@ class CategoryProductsView(generics.ListAPIView):
     queryset = Category.objects.all().prefetch_related('products__prices__shop')
     serializer_class = CategoryProductsSerializer
     http_method_names = ['get']
+
+# create and Delete favorite products
+class FavoriteCreateDeleteView(APIView):  
+
+    def post(self, request, product_id=None):
+        product = get_object_or_404(Product, id=product_id)
+        favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
+
+        if created:
+            serializer = FavoriteCreateDeleteSerializer(favorite)
+            return Response(
+                {"message": "Favorite created successfully.", "Favorite Item": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        else:
+            serializer = FavoriteCreateDeleteSerializer(favorite)
+            return Response(
+                {"message": "This product is already in favorites.", "Favorite Item": serializer.data},
+                status=status.HTTP_200_OK
+            )
+
+    def delete(self, request, product_id=None):
+        favorite = Favorite.objects.filter(user=request.user, product_id=product_id).first()
+        if not favorite:
+            return Response(
+                {"message": "This product is not in your favorites."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        favorite.delete()
+        return Response({"message": "Favorite deleted successfully."}, status=status.HTTP_200_OK)
+    
+    
+class FavoriteView(generics.ListAPIView):
+    serializer_class = FavoriteListSerializer
+
+    def get_queryset(self):
+        return Favorite.objects.filter(user=self.request.user).select_related('product', 'user')

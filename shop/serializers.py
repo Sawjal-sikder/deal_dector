@@ -274,3 +274,15 @@ class CategoryProductsSerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'category_name', 'products']
        
+       
+class FavoriteCreateDeleteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = "__all__"
+
+class FavoriteListSerializer(serializers.ModelSerializer):
+    product = ProductListSerializer(read_only=True)
+    user = serializers.StringRelatedField(read_only=True)
+    class Meta:
+        model = Favorite
+        fields = ['id', 'user', 'product']
