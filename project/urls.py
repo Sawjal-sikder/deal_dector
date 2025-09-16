@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/shop/', include('shop.urls')),
     path('accounts/', include('allauth.urls')),
     path('api/payment/', include('payment.urls')),
+    path('api/ai/', include('ai_chatbot.urls')),
     path('', lambda request: HttpResponseRedirect('/api/auth/register/')),
 
 ]
