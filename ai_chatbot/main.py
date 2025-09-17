@@ -102,10 +102,12 @@ def main(recipe_text: Optional[str] = None, choicesNumber: Optional[int] = 1):
             with open("shopping_result.json", "w", encoding="utf-8") as f:
                     json.dump(payload, f, indent=2, ensure_ascii=False)
 
-            return payload
+            data_return = {"flag":"list_generated", "response": payload}
+
+            return data_return
         else:
-                print("Okay! Ask for another dish or type 'quit' to exit.")
-                return response
+                data_return = {"flag":"normal_response", "response": response}
+                return data_return
     
     except Exception as e:
         print(f"Error in main task: {e}")

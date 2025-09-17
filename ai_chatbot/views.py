@@ -1,30 +1,57 @@
+# chats/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import *
 from .models import *
-from .main import *
+from .main import main  
 
-# Create your views here.
-class GenerateRecipeView(APIView):
-      serializer_class = RecipeRequestSerializer
+class ChatHistoryView(APIView):
+    serializer_class = ChatHistorySerializer
 
-      def post(self, request):
-            serializers = self.serializer_class(data=request.data)
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid():
+            # Extract user input
+            request_data = serializer.validated_data.get("request_data")
             
-            if serializers.is_valid():
-                  recipe_text = serializers.validated_data["recipe_text"]
-                  
-                  # Call the Celery task asynchronously
-                  task_result = main.delay(recipe_text)
-                  
-                  try:
-                        # Wait for the result with a timeout
-                        data = task_result.get(timeout=60)  # 60 seconds timeout
-                        return Response(data, status=status.HTTP_200_OK)
-                  except Exception as e:
-                        return Response(
-                              {"error": f"Task execution failed: {str(e)}"}, 
-                              status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                        )
-            return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+            # Call Celery task asynchronously
+            task_result = main.delay(request_data)
+            
+            try:
+                # Wait for the result with a timeout
+                response_data = task_result.get(timeout=60)  
+
+                # Save chat history
+                chat = ChatHistory.objects.create(
+                        user=request.user,
+                        flag=response_data.get('flag'),
+                        request_data=request_data,
+                        response_data=response_data
+                  )
+
+                return Response(
+                    self.serializer_class(chat).data, 
+                    status=status.HTTP_201_CREATED
+                )
+
+            except Exception as e:
+                return Response(
+                    {"error": f"Task execution failed: {str(e)}"}, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ChatHistoryListView(APIView):
+    def get(self, request):
+        chats = ChatHistory.objects.all()#.order_by('-created_at')
+        serializer = ChatHistoryListSerializer(chats, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+  
+class RecipeListView(APIView):
+      def get(self, request):
+          recipes = ChatHistory.objects.filter(user=request.user, flag="list_generated").order_by('-created_at')
+          serializer = RecipeListSerializer(recipes, many=True)
+          return Response(serializer.data, status=status.HTTP_200_OK)
