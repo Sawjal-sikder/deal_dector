@@ -169,90 +169,93 @@ class ProductSerializer(TranslatableModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'translations', 'category', 'product_image1', 'product_image2', 'product_image3', 'uom', 'prices']
+        fields = [
+            'id', 'translations', 'category',
+            'product_image1', 'product_image2', 'product_image3',
+            'uom', 'prices'
+        ]
 
     def to_internal_value(self, data):
-        """
-        Handle both JSON and form data submissions for translations.
-        """
         data = data.copy() if hasattr(data, 'copy') else data
-        
-        # Debug: Print incoming data
-        # print(f"DEBUG: Incoming data type: {type(data)}")
-        # print(f"DEBUG: Incoming data: {dict(data) if hasattr(data, 'items') else data}")
-        
-        # Handle QueryDict (form data) - extract first value from lists
-        if hasattr(data, 'getlist'):
-            # Convert QueryDict to regular dict with single values
+
+        if hasattr(data, 'getlist'):  # Handle QueryDict
             converted_data = {}
             for key in data.keys():
                 values = data.getlist(key)
                 converted_data[key] = values[0] if values else ''
             data = converted_data
-            # print(f"DEBUG: Converted QueryDict to: {data}")
-        
-        # Handle translations field - parse JSON string if needed
+
         if 'translations' in data and isinstance(data['translations'], str):
             try:
                 data['translations'] = json.loads(data['translations'])
-                # print(f"DEBUG: Parsed translations successfully")
             except json.JSONDecodeError:
                 raise serializers.ValidationError({'translations': 'Invalid JSON format'})
-        
-        # Handle prices field - parse JSON string if needed
+
         if 'prices' in data and isinstance(data['prices'], str):
             try:
-                original_prices = data['prices']
                 data['prices'] = json.loads(data['prices'])
-                # print(f"DEBUG: Parsed prices from '{original_prices}' to {data['prices']}")
             except json.JSONDecodeError:
-                # print(f"DEBUG: Failed to parse prices JSON: {data['prices']}")
                 raise serializers.ValidationError({'prices': 'Invalid JSON format'})
-        elif 'prices' in data:
-            print(f"DEBUG: Prices field exists but is not string: {data['prices']} (type: {type(data['prices'])})")
-        else:
-            print(f"DEBUG: No prices field found in data")
-        
-        result = super().to_internal_value(data)
-        # print(f"DEBUG: After validation, result has prices: {'prices' in result}")
-        if 'prices' in result:
-            print(f"DEBUG: Prices in result: {result['prices']} (count: {len(result['prices'])})")
-        return result
+
+        return super().to_internal_value(data)
 
     def validate_translations(self, value):
-        """
-        Validate translations structure and required fields.
-        """
         if not isinstance(value, dict):
             raise serializers.ValidationError("Translations must be a dictionary")
-        
-        # Check if English translation exists and has required fields
         if 'en' not in value:
             raise serializers.ValidationError("English translation is required")
-        
+
         en_fields = value['en']
         if not isinstance(en_fields, dict):
             raise serializers.ValidationError("English translation must be a dictionary")
-        
+
         if 'product_name' not in en_fields:
             raise serializers.ValidationError("English product_name is required")
-        
+
         if 'description' not in en_fields:
             raise serializers.ValidationError("English description is required")
-        
-        # Validate structure for all languages
+
         for lang_code, fields in value.items():
             if not isinstance(fields, dict):
-                raise serializers.ValidationError(f"Language '{lang_code}' should contain field dictionary")
-        
+                raise serializers.ValidationError(
+                    f"Language '{lang_code}' should contain field dictionary"
+                )
         return value
-        
+
     def create(self, validated_data):
         prices_data = validated_data.pop('prices', [])
         product = Product.objects.create(**validated_data)
         for price_data in prices_data:
             ProductPrice.objects.create(product=product, **price_data)
         return product
+
+    def update(self, instance, validated_data):
+        # Pop nested prices data
+        prices_data = validated_data.pop('prices', [])
+
+        # Update Product main fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Update prices
+        if prices_data:
+            # Simple approach: delete old and recreate
+            instance.prices.all().delete()
+            for price_data in prices_data:
+                ProductPrice.objects.create(product=instance, **price_data)
+
+        return instance
+
+    def delete(self, instance):
+        """
+        Optional: handle deletion via serializer.
+        Usually this is handled in the viewset, but you can use this
+        if you want to call serializer.delete(instance).
+        """
+        instance.delete()
+        return instance
+
 
 
 

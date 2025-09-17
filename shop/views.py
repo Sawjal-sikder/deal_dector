@@ -58,6 +58,17 @@ class ProductListView(generics.ListCreateAPIView):
     queryset = Product.objects.all().prefetch_related('prices__shop', 'category')
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     serializer_class = ProductSerializer
+
+
+class ProductUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Product.objects.all().prefetch_related('prices__shop', 'category')
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+    serializer_class = ProductSerializer
+    
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({"Message": "Product deleted successfully."}, status=204)
     
 class ProductView(generics.ListAPIView):
     queryset = Product.objects.all().prefetch_related('prices__shop', 'category')
