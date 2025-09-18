@@ -238,12 +238,27 @@ class ProductSerializer(TranslatableModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
-        # Update prices
+        # Update prices - preserve existing prices and update them instead of deleting
         if prices_data:
-            # Simple approach: delete old and recreate
-            instance.prices.all().delete()
             for price_data in prices_data:
-                ProductPrice.objects.create(product=instance, **price_data)
+                shop_id = price_data.get('shop')
+                price_value = price_data.get('price')
+                
+                if shop_id and price_value is not None:
+                    # Try to get existing price record
+                    existing_price = instance.prices.filter(shop_id=shop_id).first()
+                    
+                    if existing_price:
+                        # Update existing price (this will trigger the signal)
+                        existing_price.price = price_value
+                        existing_price.save()
+                    else:
+                        # Create new price record
+                        ProductPrice.objects.create(
+                            product=instance, 
+                            shop_id=shop_id, 
+                            price=price_value
+                        )
 
         return instance
 
@@ -289,3 +304,19 @@ class FavoriteListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
         fields = ['id', 'user', 'product']
+        
+        
+        
+class NotificationSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = ["id", "product", "product_name", "message", "is_read", "created_at"]
+        
+class UseNotificationSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = ["id", "product_name", "message", "is_read", "created_at"]

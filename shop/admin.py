@@ -11,3 +11,12 @@ class SupershopAdmin(TranslatableAdmin):
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
     list_display = ('user', 'product', 'created_at')
+
+
+@admin.register(ProductSubscription)
+class ProductSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'product', 'created_at')
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('user', 'product', 'message', 'is_read', 'created_at')

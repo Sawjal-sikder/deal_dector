@@ -14,6 +14,12 @@ urlpatterns = [
     path('category-products/', CategoryProductsView.as_view(), name='category-products'),
     path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
     path('prices/', ProductPriceCreateView.as_view(), name='product-price-create'),
+    path('prices/<int:pk>/', ProductPriceUpdateView.as_view(), name='product-price-update'),
     path('favorites/<product_id>/', FavoriteCreateDeleteView.as_view(), name='favorite-create-delete'),
     path('favorites/', FavoriteView.as_view(), name='favorite-list'),
+    
+    # Notification system
+    path('subscribe/<int:product_id>/', ToggleSubscriptionView.as_view(), name='product-subscribe-unsubscribe'),
+    path('notifications/', UserNotificationsView.as_view(), name='notification-list'),
+    path('notifications/use/<int:pk>/', UseNotificationsView.as_view(), name='notification-use'),
 ]

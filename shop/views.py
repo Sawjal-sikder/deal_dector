@@ -13,13 +13,13 @@ class SupershopListCreateView(generics.ListCreateAPIView):
     queryset = Supershop.objects.all()
     serializer_class = SupershopSerializer
     parser_classes = (JSONParser, MultiPartParser, FormParser)
-    permission_classes = [AllowAny]  # Allow testing without auth
+    permission_classes = [AllowAny]  
 
 class SupershopDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Supershop.objects.all()
     serializer_class = SupershopUpdateSerializer
     parser_classes = (JSONParser, MultiPartParser, FormParser)
-    permission_classes = [AllowAny]  # Allow testing without auth
+    permission_classes = [AllowAny]  
     lookup_field = 'pk'
 
     def update(self, request, *args, **kwargs):
@@ -98,6 +98,24 @@ class ProductPriceCreateView(generics.ListCreateAPIView):
     serializer_class = ProductPriceCreateSerializer
 
 
+class ProductPriceUpdateView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ProductPrice.objects.all()
+    serializer_class = ProductPriceCreateSerializer
+    permission_classes = [AllowAny]
+    lookup_field = 'pk'
+
+    def update(self, request, *args, **kwargs):
+        # Allow partial updates with PATCH
+        if request.method.lower() == "patch":
+            kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({"message": "Price deleted successfully."}, status=204)
+
+
 # list of category wise products
 class CategoryProductsView(generics.ListAPIView):
     queryset = Category.objects.all().prefetch_related('products__prices__shop')
@@ -140,3 +158,62 @@ class FavoriteView(generics.ListAPIView):
 
     def get_queryset(self):
         return Favorite.objects.filter(user=self.request.user).select_related('product', 'user')
+    
+    
+    
+class ToggleSubscriptionView(APIView):
+
+    def post(self, request, product_id, *args, **kwargs):
+        product = get_object_or_404(Product, id=product_id)
+
+        subscription, created = ProductSubscription.objects.get_or_create(
+            user=request.user, product=product
+        )
+        
+        if not created:
+            subscription.delete()
+            return Response(
+                {"message": "Unsubscribed from product notifications."}, 
+                status=status.HTTP_200_OK
+            )
+        
+        return Response(
+            {"message": "Subscribed to product notifications."}, 
+            status=status.HTTP_201_CREATED
+        )
+
+
+
+class UserNotificationsView(generics.ListAPIView):
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+    
+    
+class UseNotificationsView(APIView):
+
+    def get(self, request, pk):
+        """Retrieve a single notification"""
+        notification = get_object_or_404(Notification, user=request.user, pk=pk)
+        serializer = UseNotificationSerializer(notification)
+        return Response(serializer.data)
+
+    def post(self, request, pk, *args, **kwargs):
+        """Update notification as read/unread"""
+        is_read = request.data.get("is_read")
+
+        if is_read is None:
+            return Response(
+                {"error": "is_read field is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        notification = get_object_or_404(Notification, user=request.user, pk=pk)
+        notification.is_read = is_read
+        notification.save()
+
+        return Response(
+            {"message": f"Notification is_read={is_read}"},
+            status=status.HTTP_200_OK
+        )
