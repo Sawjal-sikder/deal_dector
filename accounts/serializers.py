@@ -1,14 +1,14 @@
-from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.hashers import check_password
 from rest_framework.validators import UniqueValidator
+from django.contrib.auth import password_validation
+from django.contrib.auth import get_user_model
+from .celery_task import Celery_send_mail
+from rest_framework import serializers
+from .models import PasswordResetCode
 from .models import CustomUser
 
-from django.contrib.auth import get_user_model
-from .models import PasswordResetCode
 User = get_user_model()
-from django.contrib.auth.password_validation import validate_password
-from .models import PasswordResetCode
-from .celery_task import Celery_send_mail
 
 
 
@@ -264,3 +264,45 @@ class ChangePasswordSerializer(serializers.Serializer):
     
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
+    
+    
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    old_password = serializers.CharField(write_only=True, required=False)
+    new_password = serializers.CharField(write_only=True, required=False)
+    
+    class Meta:
+        model = CustomUser
+        fields = ['full_name','email','phone_number', 'profile_picture', 'old_password', 'new_password']
+
+    def validate(self, attrs):
+        user = self.instance
+        old_password = attrs.get('old_password')
+        new_password = attrs.get('new_password')
+        
+        if old_password or new_password:
+            if not old_password:
+                raise serializers.ValidationError({"old_password": "Old password is required to set a new password."})
+            if not new_password:
+                raise serializers.ValidationError({"new_password": "New password is required."})
+            if not check_password(old_password, user.password):
+                raise serializers.ValidationError({"old_password": "Old password is incorrect."})
+            password_validation.validate_password(new_password, user)
+        
+        return attrs
+    def update(self, instance, validated_data):
+        instance.full_name = validated_data.get('full_name', instance.full_name)
+        instance.email = validated_data.get('email', instance.email)
+        instance.phone_number = validated_data.get('phone_number', instance.phone_number)
+        instance.profile_picture = validated_data.get('profile_picture', instance.profile_picture)
+
+        old_password = validated_data.get('old_password')
+        new_password = validated_data.get('new_password')
+
+        if old_password and new_password:
+            if not check_password(old_password, instance.password):
+                raise serializers.ValidationError({"old_password": "Old password is incorrect."})
+            password_validation.validate_password(new_password, instance)
+            instance.set_password(new_password)
+
+        instance.save()
+        return instance

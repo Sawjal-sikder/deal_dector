@@ -1,7 +1,8 @@
-from rest_framework import generics, status, permissions
-from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework import generics, status, permissions
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.response import Response
 from .serializers import *
 
 class RegisterView(generics.CreateAPIView):
@@ -136,3 +137,11 @@ class LogoutView(generics.GenericAPIView):
             return Response({"detail": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
         except TokenError:
             return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateProfileView(generics.UpdateAPIView):
+    serializer_class = UpdateProfileSerializer
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def get_object(self):
+        return self.request.user
