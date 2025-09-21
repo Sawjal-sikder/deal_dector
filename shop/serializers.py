@@ -291,6 +291,33 @@ class CategoryProductsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'category_name', 'products']
+        
+       
+# product list of category wise products
+class ProductListbyCategoryByShopSerializer(TranslatableModelSerializer):
+    translations = TranslatedFieldsField(shared_model=Product)
+    prices = serializers.SerializerMethodField()  # override to filter by shop_ids
+
+    class Meta:
+        model = Product
+        fields = "__all__"
+
+    def get_prices(self, obj):
+        shop_ids = self.context.get("shop_ids")
+        qs = obj.prices.all()
+        if shop_ids:
+            qs = qs.filter(shop_id__in=shop_ids)
+        return ProductPriceUseListSerializer(qs, many=True).data
+
+
+# Product list by shop wise products
+class CategoryProductsByShopSerializer(serializers.ModelSerializer):
+    products = ProductListbyCategoryByShopSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Category
+        fields = ['id', 'category_name', 'products']
+
        
        
 class FavoriteCreateDeleteSerializer(serializers.ModelSerializer):

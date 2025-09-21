@@ -116,11 +116,43 @@ class ProductPriceUpdateView(generics.RetrieveUpdateDestroyAPIView):
         return Response({"message": "Price deleted successfully."}, status=204)
 
 
+
+    
 # list of category wise products
-class CategoryProductsView(generics.ListAPIView):
-    queryset = Category.objects.all().prefetch_related('products__prices__shop')
+class CategoryByProductsView(generics.ListAPIView):
     serializer_class = CategoryProductsSerializer
-    http_method_names = ['get']
+    
+    def get_queryset(self):
+        category_id = self.kwargs.get("category_id")
+        if category_id:
+            return Category.objects.filter(id=category_id).prefetch_related('products__prices__shop')
+        return Category.objects.all().prefetch_related('products__prices__shop')
+    
+
+
+class CategoryByProductsByShopView(generics.ListAPIView):
+    serializer_class = CategoryProductsByShopSerializer
+
+    def get_queryset(self):
+        shop_ids = self.kwargs.get("shop_ids")
+        qs = Category.objects.all().prefetch_related("products__prices__shop")
+
+        if shop_ids:
+            shop_ids_list = [int(i) for i in shop_ids.split(",")]
+            # filter only categories/products that have those shop prices
+            qs = qs.filter(products__prices__shop_id__in=shop_ids_list).distinct()
+            self.shop_ids_list = shop_ids_list
+        else:
+            self.shop_ids_list = None
+
+        return qs
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["shop_ids"] = getattr(self, "shop_ids_list", None)
+        return context
+    
+
 
 # create and Delete favorite products
 class FavoriteCreateDeleteView(APIView):  
