@@ -195,6 +195,44 @@ class FavoriteView(generics.ListAPIView):
         return Favorite.objects.filter(user=self.request.user).select_related('product', 'user')
     
     
+# create and Delete favorite products
+class WishlistCreateDeleteView(APIView):  
+
+    def post(self, request, product_id=None):
+        product = get_object_or_404(Product, id=product_id)
+        wishlist, created = Wishlist.objects.get_or_create(user=request.user, product=product)
+
+        if created:
+            serializer = WishlistCreateDeleteSerializer(wishlist)
+            return Response(
+                {"message": "Wishlist created successfully.", "Wishlist Item": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        else:
+            serializer = WishlistCreateDeleteSerializer(wishlist)
+            return Response(
+                {"message": "This product is already in your wishlist.", "Wishlist Item": serializer.data},
+                status=status.HTTP_200_OK
+            )
+
+    def delete(self, request, product_id=None):
+        wishlist = Wishlist.objects.filter(user=request.user, product_id=product_id).first()
+        if not wishlist:
+            return Response(
+                {"message": "This product is not in your wishlist."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        wishlist.delete()
+        return Response({"message": "Wishlist deleted successfully."}, status=status.HTTP_200_OK)
+
+    
+class WishlistView(generics.ListAPIView):
+    serializer_class = WishlistListSerializer
+
+    def get_queryset(self):
+        return Wishlist.objects.filter(user=self.request.user).select_related('product', 'user')
+
+
     
 class ToggleSubscriptionView(APIView):
 

@@ -319,7 +319,7 @@ class CategoryProductsByShopSerializer(serializers.ModelSerializer):
         fields = ['id', 'category_name', 'products']
 
        
-       
+# favorites serializers   
 class FavoriteCreateDeleteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
@@ -330,6 +330,19 @@ class FavoriteListSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
     class Meta:
         model = Favorite
+        fields = ['id', 'user', 'product']
+       
+# Wishlist serializers   
+class WishlistCreateDeleteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Wishlist
+        fields = "__all__"
+
+class WishlistListSerializer(serializers.ModelSerializer):
+    product = ProductListSerializer(read_only=True)
+    user = serializers.StringRelatedField(read_only=True)
+    class Meta:
+        model = Wishlist
         fields = ['id', 'user', 'product']
         
         

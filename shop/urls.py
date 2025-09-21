@@ -17,9 +17,14 @@ urlpatterns = [
     path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
     path('prices/', ProductPriceCreateView.as_view(), name='product-price-create'),
     path('prices/<int:pk>/', ProductPriceUpdateView.as_view(), name='product-price-update'),
+    # favorite products
     path('favorites/<product_id>/', FavoriteCreateDeleteView.as_view(), name='favorite-create-delete'),
     path('favorites/', FavoriteView.as_view(), name='favorite-list'),
     
+    # wishlist products
+    path('wishlists/<product_id>/', WishlistCreateDeleteView.as_view(), name='wishlist-create-delete'),
+    path('wishlists/', WishlistView.as_view(), name='wishlist-list'),
+
     # Notification system
     path('subscribe/<int:product_id>/', ToggleSubscriptionView.as_view(), name='product-subscribe-unsubscribe'),
     path('notifications/', UserNotificationsView.as_view(), name='notification-list'),
