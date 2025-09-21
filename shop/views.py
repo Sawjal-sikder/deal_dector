@@ -1,4 +1,5 @@
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from payment.paymentPermission import HasActiveSubscription
 from .pagination import StandardResultsSetPagination
 from rest_framework.permissions import AllowAny
 from django.shortcuts import get_object_or_404
@@ -78,6 +79,8 @@ class ProductView(generics.ListAPIView):
     search_fields = ['translations__product_name', 'translations__description', 'category__translations__category_name']
     ordering_fields = ['translations__product_name', 'created_at', 'updated_at']
     ordering = ['-created_at']  
+    
+    # permission_classes = [HasActiveSubscription]
     
 class ProductDetailsonlyView(generics.RetrieveAPIView):
     serializer_class = ProductListSerializer
