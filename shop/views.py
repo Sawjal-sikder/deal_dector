@@ -234,6 +234,46 @@ class WishlistView(generics.ListAPIView):
 
 
     
+    
+# create and Delete ShoppingList
+class ShoppingListCreateDeleteView(APIView):
+
+    def post(self, request, product_id=None):
+        product = get_object_or_404(Product, id=product_id)
+        shopping_list, created = ShoppingList.objects.get_or_create(user=request.user, product=product)
+
+        if created:
+            serializer = ShoppingListCreateDeleteSerializer(shopping_list)
+            return Response(
+                {"message": "ShoppingList created successfully.", "ShoppingList Item": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        else:
+            serializer = ShoppingListCreateDeleteSerializer(shopping_list)
+            return Response(
+                {"message": "This product is already in your shopping list.", "ShoppingList Item": serializer.data},
+                status=status.HTTP_200_OK
+            )
+
+    def delete(self, request, product_id=None):
+        shopping_list = ShoppingList.objects.filter(user=request.user, product_id=product_id).first()
+        if not shopping_list:
+            return Response(
+                {"message": "This product is not in your shopping list."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        shopping_list.delete()
+        return Response({"message": "ShoppingList deleted successfully."}, status=status.HTTP_200_OK)
+
+
+class ShoppingListView(generics.ListAPIView):
+    serializer_class = ShoppingListListSerializer
+
+    def get_queryset(self):
+        return ShoppingList.objects.filter(user=self.request.user).select_related('product', 'user')
+
+
+    
 class ToggleSubscriptionView(APIView):
 
     def post(self, request, product_id, *args, **kwargs):

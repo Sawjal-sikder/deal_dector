@@ -344,6 +344,19 @@ class WishlistListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Wishlist
         fields = ['id', 'user', 'product']
+
+# ShoppingList serializers
+class ShoppingListCreateDeleteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShoppingList
+        fields = "__all__"
+
+class ShoppingListListSerializer(serializers.ModelSerializer):
+    product = ProductListSerializer(read_only=True)
+    user = serializers.StringRelatedField(read_only=True)
+    class Meta:
+        model = ShoppingList
+        fields = ['id', 'user', 'product']
         
         
         

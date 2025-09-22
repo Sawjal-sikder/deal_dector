@@ -73,7 +73,16 @@ class Wishlist(models.Model):
 
     def __str__(self):
         return f"Favorite: {self.user} - {self.product}"
-    
+
+# For Shopping List
+class ShoppingList(models.Model):
+    user = models.ForeignKey(User, related_name='shopping_lists', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, related_name='shopping_lists', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Shopping List: {self.user} - {self.product}"
+
     
 class ProductSubscription(models.Model):
     user = models.ForeignKey(User, related_name='product_subscriptions', on_delete=models.CASCADE)

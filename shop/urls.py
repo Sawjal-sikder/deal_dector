@@ -1,4 +1,3 @@
-# urls.py
 from django.urls import path
 from .views import *
 
@@ -24,6 +23,11 @@ urlpatterns = [
     # wishlist products
     path('wishlists/<product_id>/', WishlistCreateDeleteView.as_view(), name='wishlist-create-delete'),
     path('wishlists/', WishlistView.as_view(), name='wishlist-list'),
+
+    
+    # ShoppingList products
+    path('shopping-lists/<product_id>/', ShoppingListCreateDeleteView.as_view(), name='shopping-list-create-delete'),
+    path('shopping-lists/', ShoppingListView.as_view(), name='shopping-list-list'),
 
     # Notification system
     path('subscribe/<int:product_id>/', ToggleSubscriptionView.as_view(), name='product-subscribe-unsubscribe'),
