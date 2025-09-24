@@ -1,10 +1,12 @@
 # chats/views.py
-from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from celery.result import AsyncResult
 from rest_framework import status
 from .serializers import *
-from .models import *
 from .main import main  
+from .models import *
+
 
 class ChatHistoryView(APIView):
     serializer_class = ChatHistorySerializer
@@ -13,37 +15,57 @@ class ChatHistoryView(APIView):
         serializer = self.serializer_class(data=request.data)
 
         if serializer.is_valid():
-            # Extract user input
             request_data = serializer.validated_data.get("request_data")
 
-            # Call Celery task asynchronously
-            task_result = main.delay(request_data)
+            # Start Celery task
+            task = main.delay(request_data)
 
-            try:
-                # Wait for the result with a timeout
-                response_data = task_result.get(timeout=600)
+            # Create chat history (empty response for now)
+            chat = ChatHistory.objects.create(
+                user=request.user,
+                request_data=request_data,
+                response_data={},  
+            )
 
-                # Save chat history
-                chat = ChatHistory.objects.create(
-                    user=request.user,
-                    flag=response_data.get("flag"),
-                    request_data=request_data,
-                    response_data=response_data,
-                )
-
-                return Response(
-                    self.serializer_class(chat).data,
-                    status=status.HTTP_201_CREATED,
-                )
-
-            except Exception as e:
-                return Response(
-                    {"error": f"Task execution failed: {str(e)}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+            return Response(
+                {
+                    "task_id": task.id,
+                    "chat_id": chat.id,
+                    "message": "Task started. Use task_id to fetch results.",
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class ChatResultView(APIView):
+    """Fetch task result by task_id"""
+
+    def get(self, request, task_id):
+        result = AsyncResult(task_id)
+
+        if result.ready():
+            if result.successful():
+                data = result.result
+
+                # Update chat history with response
+                chat = ChatHistory.objects.filter(user=request.user).last()
+                chat.flag = data.get("flag")
+                chat.response_data = data
+                chat.save()
+
+                return Response({"status": "done", "result": data}, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {"status": "failed", "error": str(result.result)},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+        return Response({"status": "pending"}, status=status.HTTP_202_ACCEPTED)
+    
+    
+    
 class ChatHistoryListView(APIView):
     def get(self, request):
         chats = ChatHistory.objects.all()#.order_by('-created_at')
