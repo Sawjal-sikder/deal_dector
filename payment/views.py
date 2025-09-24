@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-stripe.api_key = os.getenv("STRIPE_API_KEY")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 
 
