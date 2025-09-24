@@ -17,4 +17,5 @@ urlpatterns = [
     
     # update profile
     path('auth/profile/update/', UpdateProfileView.as_view(), name='profile-update'),
+    path('auth/user/list/', UserListView.as_view(), name='user-list'),
 ]
