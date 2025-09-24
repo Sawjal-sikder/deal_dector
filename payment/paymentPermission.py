@@ -1,5 +1,12 @@
 from rest_framework import permissions
 from .models import Subscription
+from rest_framework.exceptions import APIException
+from rest_framework import status
+
+class SubscriptionRequired(APIException):
+    status_code = status.HTTP_402_PAYMENT_REQUIRED
+    default_detail = "Please purchase a subscription."
+    default_code = "subscription_required"
 
 class HasActiveSubscription(permissions.BasePermission):
     """
@@ -7,6 +14,7 @@ class HasActiveSubscription(permissions.BasePermission):
     """
 
     message = "Please purchase a subscription."
+    
 
     def has_permission(self, request, view):
         user = request.user
@@ -18,4 +26,6 @@ class HasActiveSubscription(permissions.BasePermission):
         if active_subscription:
             return True
 
-        return False
+        raise SubscriptionRequired()
+
+
