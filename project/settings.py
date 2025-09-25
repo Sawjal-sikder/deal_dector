@@ -167,7 +167,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
 
-
+SITE_URL = "http://103.186.20.115:14003"
 AUTH_USER_MODEL = 'accounts.CustomUser'
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']

@@ -1,10 +1,15 @@
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.db import models
-from django.contrib.auth import get_user_model
+import uuid
 import random
+from django.db import models
 from datetime import timedelta
+from django.urls import reverse
 from django.utils import timezone
 from django.core.mail import send_mail
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+
+
+from project import settings
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, full_name, phone_number, password=None, **extra_fields):
@@ -39,11 +44,27 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
+    referral_code = models.CharField(max_length=50, blank=True, null=True)
+    referred_by = models.CharField(max_length=50, blank=True, null=True)
+    my_referral_link = models.URLField(max_length=200, blank=True, null=True)
+    favorite_item = models.PositiveIntegerField(default=3)
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name', 'phone_number']
+
+    
+    def save(self, *args, **kwargs):
+        if not self.referral_code:
+            self.referral_code = str(uuid.uuid4())[:10].upper()
+
+        if not self.my_referral_link:
+            base_url = getattr(settings, "SITE_URL", "http://localhost:8000")
+            self.my_referral_link = f"{base_url}/api/auth/register/{self.referral_code}/"
+
+        super().save(*args, **kwargs)
+
 
     def __str__(self):
         return self.full_name

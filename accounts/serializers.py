@@ -18,10 +18,11 @@ class RegisterSerializer(serializers.ModelSerializer):
     )
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
+    referral_code_used = serializers.CharField(required=False, write_only=True)
 
     class Meta:
         model = CustomUser
-        fields = ['email', 'full_name', 'phone_number', 'password', 'password2']
+        fields = ['email', 'full_name', 'phone_number', 'password', 'password2', 'referral_code_used']
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -30,10 +31,25 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password2')
+        # referral_code = validated_data.pop('referral_code_used', None)
+        referral_code = self.context.get("referral_code_used")
+
         # Set is_active=False during creation
         user = CustomUser.objects.create_user(**validated_data)
         user.is_active = False
         user.save() 
+        
+        # Handle referral code if provided
+        if referral_code:
+            try:
+                referrer = CustomUser.objects.get(referral_code=referral_code)
+                referrer.favorite_item += 1
+                referrer.save()
+                user.referred_by = referrer
+                user.save()
+            except CustomUser.DoesNotExist:
+                pass              
+            
         # generate otp
         active_code = PasswordResetCode.objects.create(user=user)
         Celery_send_mail.delay(
@@ -310,4 +326,4 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'full_name', 'phone_number', 'profile_picture']
+        fields = ['id', 'email', 'full_name', 'phone_number', 'profile_picture','my_referral_link','referral_code','referred_by','favorite_item']

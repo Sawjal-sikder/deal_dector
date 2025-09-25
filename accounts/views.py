@@ -150,3 +150,14 @@ class UpdateProfileView(generics.UpdateAPIView):
 class UserListView(generics.ListAPIView):
     serializer_class = UserSerializer
     queryset = CustomUser.objects.all()
+
+
+class RegisterUserReferralView(generics.CreateAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = RegisterSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["referral_code_used"] = self.kwargs.get("referral_code_used")
+        return context
