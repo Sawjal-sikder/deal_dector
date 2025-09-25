@@ -48,7 +48,7 @@ class RegisterSerializer(serializers.ModelSerializer):
                 user.referred_by = referral_code
                 user.save()
             except CustomUser.DoesNotExist:
-                pass              
+                pass
             
         # generate otp
         active_code = PasswordResetCode.objects.create(user=user)
