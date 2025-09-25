@@ -8,6 +8,12 @@ from .serializers import *
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["referral_code_used"] = self.kwargs.get("referral_code_used")
+        return context
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -152,12 +158,12 @@ class UserListView(generics.ListAPIView):
     queryset = CustomUser.objects.all()
 
 
-class RegisterUserReferralView(generics.CreateAPIView):
-    queryset = CustomUser.objects.all()
-    serializer_class = RegisterSerializer
-    permission_classes = [permissions.AllowAny]
+# class RegisterUserReferralView(generics.CreateAPIView):
+#     queryset = CustomUser.objects.all()
+#     serializer_class = RegisterSerializer
+#     permission_classes = [permissions.AllowAny]
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["referral_code_used"] = self.kwargs.get("referral_code_used")
-        return context
+#     def get_serializer_context(self):
+#         context = super().get_serializer_context()
+#         context["referral_code_used"] = self.kwargs.get("referral_code_used")
+#         return context
