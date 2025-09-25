@@ -162,20 +162,35 @@ class FavoriteCreateDeleteView(APIView):
 
     def post(self, request, product_id=None):
         product = get_object_or_404(Product, id=product_id)
-        favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
-
-        if created:
-            serializer = FavoriteCreateDeleteSerializer(favorite)
-            return Response(
-                {"message": "Favorite created successfully.", "Favorite Item": serializer.data},
-                status=status.HTTP_201_CREATED
-            )
-        else:
-            serializer = FavoriteCreateDeleteSerializer(favorite)
+        
+        # Check if the product is already in favorites
+        existing_favorite = Favorite.objects.filter(user=request.user, product=product).first()
+        if existing_favorite:
+            serializer = FavoriteCreateDeleteSerializer(existing_favorite)
             return Response(
                 {"message": "This product is already in favorites.", "Favorite Item": serializer.data},
                 status=status.HTTP_200_OK
             )
+        
+        # Get user's favorite item limit and current count
+        user = request.user
+        favorite_balance = user.favorite_item
+        favorite_item_used = Favorite.objects.filter(user=user).count()
+        
+        # Check if user has reached the limit
+        if favorite_item_used >= favorite_balance:
+            return Response(
+                {"message": "You have reached your favorite item limit. Please upgrade your plan."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Create the favorite item
+        favorite = Favorite.objects.create(user=request.user, product=product)
+        serializer = FavoriteCreateDeleteSerializer(favorite)
+        return Response(
+            {"message": "Favorite created successfully.", "Favorite Item": serializer.data},
+            status=status.HTTP_201_CREATED
+        )
 
     def delete(self, request, product_id=None):
         favorite = Favorite.objects.filter(user=request.user, product_id=product_id).first()
