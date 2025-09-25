@@ -1,5 +1,6 @@
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.hashers import check_password
+from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth import password_validation
 from django.contrib.auth import get_user_model
@@ -33,22 +34,26 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('password2')
         # referral_code = validated_data.pop('referral_code_used', None)
         referral_code = self.context.get("referral_code_used")
-
-        # Set is_active=False during creation
-        user = CustomUser.objects.create_user(**validated_data)
-        user.is_active = False
-        user.save() 
         
-        # Handle referral code if provided
+        referrer = None
         if referral_code:
             try:
                 referrer = CustomUser.objects.get(referral_code=referral_code)
-                referrer.favorite_item += 1
-                referrer.save()
-                user.referred_by = referral_code
-                user.save()
             except CustomUser.DoesNotExist:
-                pass
+                raise ValidationError({"referral_code_used": "Invalid referral code."})
+
+        # Create the user
+        user = CustomUser.objects.create_user(**validated_data)
+        user.is_active = False
+
+        # Link valid referrer
+        if referrer:
+            referrer.favorite_item += 1
+            referrer.save()
+            user.referred_by = referral_code
+
+        user.save()
+            
             
         # generate otp
         active_code = PasswordResetCode.objects.create(user=user)
