@@ -45,7 +45,7 @@ class RegisterSerializer(serializers.ModelSerializer):
                 referrer = CustomUser.objects.get(referral_code=referral_code)
                 referrer.favorite_item += 1
                 referrer.save()
-                user.referred_by = referrer
+                user.referred_by = referral_code
                 user.save()
             except CustomUser.DoesNotExist:
                 pass              
