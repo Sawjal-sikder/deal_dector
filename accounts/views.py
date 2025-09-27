@@ -3,7 +3,9 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework import generics, status, permissions
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from .serializers import *
+
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -158,12 +160,9 @@ class UserListView(generics.ListAPIView):
     queryset = CustomUser.objects.all()
 
 
-# class RegisterUserReferralView(generics.CreateAPIView):
-#     queryset = CustomUser.objects.all()
-#     serializer_class = RegisterSerializer
-#     permission_classes = [permissions.AllowAny]
+class UserDetailView(APIView):
 
-#     def get_serializer_context(self):
-#         context = super().get_serializer_context()
-#         context["referral_code_used"] = self.kwargs.get("referral_code_used")
-#         return context
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserDetailSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -329,6 +329,19 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         return instance
     
 class UserSerializer(serializers.ModelSerializer):
+    count_referrals = serializers.SerializerMethodField()
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'full_name', 'phone_number', 'profile_picture','my_referral_link','referral_code','referred_by','favorite_item']
+        fields = ['id', 'email', 'full_name', 'phone_number', 'profile_picture','my_referral_link','referral_code','referred_by','favorite_item', 'count_referrals']
+        
+    def get_count_referrals(self, obj):
+        return CustomUser.objects.filter(referred_by=obj.referral_code).count()
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    count_referrals = serializers.SerializerMethodField()
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'full_name', 'my_referral_link','referral_code','favorite_item', 'count_referrals']
+        
+    def get_count_referrals(self, obj):
+        return CustomUser.objects.filter(referred_by=obj.referral_code).count()
