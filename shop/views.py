@@ -254,25 +254,11 @@ class WishlistView(generics.ListAPIView):
 class ShoppingListCreateDeleteView(APIView):
 
     def post(self, request):
-        # Try to get product_ids from request body first, then from query parameters
         product_ids = request.data.get("product_ids", [])
-        
-        # If not found in body, check query parameters
-        if not product_ids:
-            query_product_ids = request.GET.get("product_ids")
-            if query_product_ids:
-                try:
-                    # Split comma-separated string and convert to integers
-                    product_ids = [int(pid.strip()) for pid in query_product_ids.split(",") if pid.strip()]
-                except ValueError:
-                    return Response(
-                        {"error": "Invalid product_ids format in query parameters. Use comma-separated integers."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
         
         if not isinstance(product_ids, list) or not product_ids:
             return Response(
-                {"error": "You must provide a list of product_ids either in request body or as query parameter."},
+                {"error": "You must provide a list of product_ids."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
