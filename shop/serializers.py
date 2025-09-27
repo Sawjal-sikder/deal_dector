@@ -151,16 +151,27 @@ class ProductPriceCreateSerializer(serializers.ModelSerializer):
         model = ProductPrice
         fields = ['shop', 'price']
 
+
 # Product List Serializer only for listing products
 class ProductListSerializer(TranslatableModelSerializer):
     translations = TranslatedFieldsField(shared_model=Product)
     prices = ProductPriceUseListSerializer(many=True, required=False)
     category = CategoryUseListSerializer(read_only=True)
+    favorites = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         # fields = ['id', 'translations', 'category', 'product_image1', 'product_image2', 'product_image3', 'uom', 'prices']
         fields = "__all__"
+        
+    def get_favorites(self, obj):
+        """
+        Return True if the current request user has favorited this product.
+        """
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return obj.favorites.filter(user=request.user).exists()
+        return False
 
 # create product serializer
 class ProductSerializer(TranslatableModelSerializer):
@@ -328,10 +339,17 @@ class FavoriteCreateDeleteSerializer(serializers.ModelSerializer):
 class FavoriteListSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
     user = serializers.StringRelatedField(read_only=True)
+    notification = serializers.SerializerMethodField()
     class Meta:
         model = Favorite
-        fields = ['id', 'user', 'product']
-       
+        fields = ['id', 'user', 'product', 'notification']
+
+    def get_notification(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return obj.product.notifications.filter(user=request.user).exists()
+        return False
+
 # Wishlist serializers   
 class WishlistCreateDeleteSerializer(serializers.ModelSerializer):
     class Meta:

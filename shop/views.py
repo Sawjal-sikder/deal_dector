@@ -180,7 +180,7 @@ class FavoriteCreateDeleteView(APIView):
         # Check if user has reached the limit
         if favorite_item_used >= favorite_balance:
             return Response(
-                {"message": "You have reached your favorite item limit. Please upgrade your plan."},
+                {"message": "You have reached your favorite item limit."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -253,22 +253,51 @@ class WishlistView(generics.ListAPIView):
 # create and Delete ShoppingList
 class ShoppingListCreateDeleteView(APIView):
 
-    def post(self, request, product_id=None):
-        product = get_object_or_404(Product, id=product_id)
-        shopping_list, created = ShoppingList.objects.get_or_create(user=request.user, product=product)
+    def post(self, request):
+        # Try to get product_ids from request body first, then from query parameters
+        product_ids = request.data.get("product_ids", [])
+        
+        # If not found in body, check query parameters
+        if not product_ids:
+            query_product_ids = request.GET.get("product_ids")
+            if query_product_ids:
+                try:
+                    # Split comma-separated string and convert to integers
+                    product_ids = [int(pid.strip()) for pid in query_product_ids.split(",") if pid.strip()]
+                except ValueError:
+                    return Response(
+                        {"error": "Invalid product_ids format in query parameters. Use comma-separated integers."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+        
+        if not isinstance(product_ids, list) or not product_ids:
+            return Response(
+                {"error": "You must provide a list of product_ids either in request body or as query parameter."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        if created:
+        created_items = []
+        already_existing = []
+
+        for pid in product_ids:
+            product = get_object_or_404(Product, id=pid)
+            shopping_list, created = ShoppingList.objects.get_or_create(user=request.user, product=product)
+
             serializer = ShoppingListCreateDeleteSerializer(shopping_list)
-            return Response(
-                {"message": "ShoppingList created successfully.", "ShoppingList Item": serializer.data},
-                status=status.HTTP_201_CREATED
-            )
-        else:
-            serializer = ShoppingListCreateDeleteSerializer(shopping_list)
-            return Response(
-                {"message": "This product is already in your shopping list.", "ShoppingList Item": serializer.data},
-                status=status.HTTP_200_OK
-            )
+
+            if created:
+                created_items.append(serializer.data)
+            else:
+                already_existing.append(serializer.data)
+
+        return Response(
+            {
+                "message": "Processed shopping list items.",
+                "created_items": created_items,
+                "already_existing": already_existing,
+            },
+            status=status.HTTP_201_CREATED if created_items else status.HTTP_200_OK
+        )
 
     def delete(self, request, product_id=None):
         shopping_list = ShoppingList.objects.filter(user=request.user, product_id=product_id).first()

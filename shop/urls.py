@@ -26,6 +26,7 @@ urlpatterns = [
 
     
     # ShoppingList products
+    path('shopping-lists/create/', ShoppingListCreateDeleteView.as_view(), name='shopping-list-create'),
     path('shopping-lists/<product_id>/', ShoppingListCreateDeleteView.as_view(), name='shopping-list-create-delete'),
     path('shopping-lists/', ShoppingListView.as_view(), name='shopping-list-list'),
 
