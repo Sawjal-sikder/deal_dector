@@ -161,7 +161,7 @@ class CategoryByProductsByShopView(generics.ListAPIView):
 
 # create and Delete favorite products
 class FavoriteCreateDeleteView(APIView):  
-    
+    permission_classes = [HasActiveSubscription]
 
     def post(self, request, product_id=None):
         product = get_object_or_404(Product, id=product_id)
@@ -218,13 +218,15 @@ class FavoriteCreateDeleteView(APIView):
     
 class FavoriteView(generics.ListAPIView):
     serializer_class = FavoriteListSerializer
+    permission_classes = [HasActiveSubscription]
 
     def get_queryset(self):
         return Favorite.objects.filter(user=self.request.user).select_related('product', 'user')
     
     
 # create and Delete favorite products
-class WishlistCreateDeleteView(APIView):  
+class WishlistCreateDeleteView(APIView): 
+    permission_classes = [HasActiveSubscription] 
 
     def post(self, request, product_id=None):
         product = get_object_or_404(Product, id=product_id)
@@ -256,6 +258,7 @@ class WishlistCreateDeleteView(APIView):
     
 class WishlistView(generics.ListAPIView):
     serializer_class = WishlistListSerializer
+    permission_classes = [HasActiveSubscription]
 
     def get_queryset(self):
         return Wishlist.objects.filter(user=self.request.user).select_related('product', 'user')
@@ -265,6 +268,7 @@ class WishlistView(generics.ListAPIView):
     
 # create and Delete ShoppingList
 class ShoppingListCreateDeleteView(APIView):
+    permission_classes = [HasActiveSubscription]
 
     def post(self, request):
         product_ids = request.data.get("product_ids", [])
@@ -311,6 +315,7 @@ class ShoppingListCreateDeleteView(APIView):
 
 class ShoppingListView(generics.ListAPIView):
     serializer_class = ShoppingListListSerializer
+    permission_classes = [HasActiveSubscription]
 
     def get_queryset(self):
         return ShoppingList.objects.filter(user=self.request.user).select_related('product', 'user')
@@ -318,6 +323,7 @@ class ShoppingListView(generics.ListAPIView):
 
     
 class ToggleSubscriptionView(APIView):
+    permission_classes = [HasActiveSubscription]
 
     def post(self, request, product_id, *args, **kwargs):
         product = get_object_or_404(Product, id=product_id)
@@ -342,12 +348,14 @@ class ToggleSubscriptionView(APIView):
 
 class UserNotificationsView(generics.ListAPIView):
     serializer_class = NotificationSerializer
+    permission_classes = [HasActiveSubscription]
 
     def get_queryset(self):
         return Notification.objects.filter(user=self.request.user).order_by('-created_at')
     
     
 class UseNotificationsView(APIView):
+    permission_classes = [HasActiveSubscription]
 
     def get(self, request, pk):
         """Retrieve a single notification"""
