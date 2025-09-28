@@ -8,7 +8,9 @@ from rest_framework import generics, filters
 from rest_framework.views import APIView
 from rest_framework import status
 from .serializers import *
+from datetime import date
 from .models import *
+
 
 class SupershopListCreateView(generics.ListCreateAPIView):
     queryset = Supershop.objects.all()
@@ -159,6 +161,7 @@ class CategoryByProductsByShopView(generics.ListAPIView):
 
 # create and Delete favorite products
 class FavoriteCreateDeleteView(APIView):  
+    
 
     def post(self, request, product_id=None):
         product = get_object_or_404(Product, id=product_id)
@@ -176,21 +179,31 @@ class FavoriteCreateDeleteView(APIView):
         user = request.user
         favorite_balance = user.favorite_item
         favorite_item_used = Favorite.objects.filter(user=user).count()
-        
-        # Check if user has reached the limit
-        if favorite_item_used >= favorite_balance:
+
+        # Case 1: Unlimited package (still valid)
+        if user.is_unlimited and user.package_expiry:
+            favorite = Favorite.objects.create(user=user, product=product)
+            serializer = FavoriteCreateDeleteSerializer(favorite)
             return Response(
-                {"message": "You have reached your favorite item limit."},
-                status=status.HTTP_403_FORBIDDEN
+                {"message": "Favorite created successfully (unlimited plan).", "Favorite Item": serializer.data},
+                status=status.HTTP_201_CREATED
             )
 
-        # Create the favorite item
-        favorite = Favorite.objects.create(user=request.user, product=product)
-        serializer = FavoriteCreateDeleteSerializer(favorite)
-        return Response(
-            {"message": "Favorite created successfully.", "Favorite Item": serializer.data},
-            status=status.HTTP_201_CREATED
-        )
+        # Case 2: Reached the limit but allow creating
+        elif favorite_item_used < favorite_balance:
+            favorite = Favorite.objects.create(user=user, product=product)
+            serializer = FavoriteCreateDeleteSerializer(favorite)
+            return Response(
+                {"message": "Favorite created successfully (over limit allowed).", "Favorite Item": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+
+        # Case 3: Did not reach the limit → block creation
+        else:
+            return Response(
+                {"message": "You cannot add a favorite until your limit is reached."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
     def delete(self, request, product_id=None):
         favorite = Favorite.objects.filter(user=request.user, product_id=product_id).first()
@@ -360,3 +373,30 @@ class UseNotificationsView(APIView):
             {"message": f"Notification is_read={is_read}"},
             status=status.HTTP_200_OK
         )
+
+class DashboardView(APIView):
+
+    def get(self, request):
+        """Retrieve dashboard statistics."""
+        total_users = User.objects.count()
+        today_new_users = User.objects.filter(create_date=date.today()).count()
+        total_products = Product.objects.count()
+        total_supermarkets = Supershop.objects.count()
+
+        data = {
+            "total_users": total_users,
+            "today_new_users": today_new_users,
+            "total_products": total_products,
+            "total_supermarkets": total_supermarkets,
+        }
+
+
+        return Response(data)
+
+
+class UsePromoCodeView(APIView):
+    def post(self, request):
+        serializer = UsePromoCodeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response({"message": "Promo code applied successfully. You are now premium!"})

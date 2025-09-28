@@ -34,4 +34,9 @@ urlpatterns = [
     path('subscribe/<int:product_id>/', ToggleSubscriptionView.as_view(), name='product-subscribe-unsubscribe'),
     path('notifications/', UserNotificationsView.as_view(), name='notification-list'),
     path('notifications/use/<int:pk>/', UseNotificationsView.as_view(), name='notification-use'),
+
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
+    
+    # use promo code
+    path('promo-code/use/', UsePromoCodeView.as_view(), name='use-promo-code')
 ]

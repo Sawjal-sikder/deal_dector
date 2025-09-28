@@ -154,6 +154,18 @@ class UpdateProfileView(generics.UpdateAPIView):
     def get_object(self):
         return self.request.user
     
+class UserTriggerView(generics.RetrieveUpdateAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserTriggerSerializer
+
+    def patch(self, request, *args, **kwargs):
+        """Toggle is_active for a user"""
+        user = self.get_object()
+        user.is_active = request.data.get('is_active', user.is_active)
+        user.save()
+        serializer = self.get_serializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     
 class UserListView(generics.ListAPIView):
     serializer_class = UserSerializer
@@ -166,3 +178,32 @@ class UserDetailView(APIView):
         user = request.user
         serializer = UserDetailSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
+    
+    
+class PromoCodeView(generics.ListCreateAPIView):
+    queryset = PromoCode.objects.all().order_by('-created_at')
+    serializer_class = PromoCodeSerializer
+    
+    
+class PromoCodeDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = PromoCode.objects.all()
+    serializer_class = PromoCodeSerializer
+    lookup_field = "pk"
+    
+    
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return Response(
+            {"message": "Promo code updated successfully", "data": response.data},
+            status=status.HTTP_200_OK
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {"message": "Promo code deleted successfully"},
+            status=status.HTTP_200_OK
+        )

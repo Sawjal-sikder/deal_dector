@@ -19,5 +19,11 @@ urlpatterns = [
     
     # update profile
     path('auth/profile/update/', UpdateProfileView.as_view(), name='profile-update'),
+    path('user/profile/<int:pk>/', UserTriggerView.as_view(), name='user-trigger'),
     path('auth/user/list/', UserListView.as_view(), name='user-list'),
+    
+    
+    # promocode
+    path('auth/promo-code/', PromoCodeView.as_view(), name='promo_code'),
+    path('auth/promo-code/<int:pk>/', PromoCodeDetailView.as_view(), name='promo_code_detail'),
 ]

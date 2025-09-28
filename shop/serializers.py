@@ -3,6 +3,7 @@ from parler_rest.serializers import TranslatableModelSerializer, TranslatedField
 from rest_framework import serializers
 from parler.utils.context import switch_language
 from .models import *
+from accounts.models import *
 from django.conf import settings
 
 class SupershopSerializer(TranslatableModelSerializer):
@@ -391,3 +392,45 @@ class UseNotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ["id", "product_name", "message", "is_read", "created_at"]
+        
+
+
+
+class UsePromoCodeSerializer(serializers.ModelSerializer):
+    promocode = serializers.CharField(required=True)
+
+    class Meta:
+        model = PromoCode
+        fields = ["promocode"]
+
+    def validate_promocode(self, value):
+        """Check if promo code exists and is valid"""
+        try:
+            promo = PromoCode.objects.get(code=value)
+        except PromoCode.DoesNotExist:
+            raise serializers.ValidationError("Invalid promo code.")
+
+        # Check if promo is active
+        if not promo.is_active:
+            raise serializers.ValidationError("Promo code is not active.")
+
+        return value
+
+    def save(self, **kwargs):
+        """Apply promo code to user"""
+        request = self.context.get("request")
+        user = request.user
+
+        promo = PromoCode.objects.get(code=self.validated_data["promocode"])
+        
+        # Upgrade user to premium
+        user.is_premium = True
+        
+        # Set expiry based on promo duration
+        if promo.duration_days:
+            user.premium_expiry = timezone.now().date() + timedelta(days=promo.duration_days)
+        else:
+            user.premium_expiry = None
+
+        user.save()
+        return user

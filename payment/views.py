@@ -3,6 +3,7 @@ import datetime
 import logging
 from django.conf import settings
 from django.utils.timezone import make_aware
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from rest_framework.views import APIView
@@ -10,6 +11,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import permissions
+from django.contrib.auth import get_user_model
 
 from .models import *
 from .serializers import *
@@ -22,6 +24,59 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
+User = get_user_model()
+
+def process_referral_benefits(user, subscription):
+    """
+    Process referral benefits when a user purchases a subscription.
+    
+    Args:
+        user: The user who purchased the subscription
+        subscription: The subscription object
+    """
+    try:
+        logger.info(f"Processing referral benefits for user {user.id}")
+        
+        # Check if the user was referred by someone
+        if user.referred_by:
+            try:
+                # Find the referrer
+                referrer = User.objects.get(referral_code=user.referred_by)
+                logger.info(f"Found referrer {referrer.id} for user {user.id}")
+                
+                # Use current time if current_period_end is not available
+                base_time = subscription.current_period_end or timezone.now()
+                logger.info(f"Using base time: {base_time}")
+                
+                # Calculate benefit duration (e.g., 30 days from subscription end)
+                benefit_duration = datetime.timedelta(days=30)
+                
+                # Grant benefits to the referrer
+                referrer.is_unlimited = True
+                referrer.package_expiry = base_time + benefit_duration
+                referrer.save()
+                logger.info(f"Granted unlimited access to referrer {referrer.id} until {referrer.package_expiry}")
+                
+                # Grant benefits to the referee (the purchaser)
+                bonus_duration = datetime.timedelta(days=7)
+                user.is_unlimited = True
+                user.package_expiry = base_time + bonus_duration
+                user.save()
+                logger.info(f"Granted bonus unlimited access to referee {user.id} until {user.package_expiry}")
+                
+            except User.DoesNotExist:
+                logger.warning(f"Referrer with code {user.referred_by} not found for user {user.id}")
+            except Exception as inner_e:
+                logger.error(f"Error processing referrer benefits: {str(inner_e)}")
+                
+        else:
+            logger.info(f"User {user.id} was not referred by anyone, skipping referral benefits")
+            
+    except Exception as e:
+        logger.error(f"Error processing referral benefits for user {user.id}: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
 
 
@@ -325,7 +380,114 @@ class PaymentCancelView(APIView):
             return Response({"message": "Payment cancel"}, status=200)
 
 
-# ✅ Stripe Webhook
+class TestReferralBenefitsView(APIView):
+    """Test endpoint to verify referral benefits functionality"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        """
+        Test referral benefits processing
+        Usage: POST /api/payment/test-referral-benefits/
+        Body: {"subscription_id": <subscription_id>}
+        """
+        subscription_id = request.data.get("subscription_id")
+        
+        if not subscription_id:
+            return Response({"error": "subscription_id is required"}, status=400)
+        
+        try:
+            subscription = Subscription.objects.get(id=subscription_id)
+            
+            # Process referral benefits for testing
+            process_referral_benefits(subscription.user, subscription)
+            
+            # Return current user status
+            user = subscription.user
+            referrer = None
+            if user.referred_by:
+                try:
+                    referrer = User.objects.get(referral_code=user.referred_by)
+                except User.DoesNotExist:
+                    pass
+            
+            return Response({
+                "message": "Referral benefits processed successfully",
+                "purchaser": {
+                    "id": user.id,
+                    "email": user.email,
+                    "is_unlimited": user.is_unlimited,
+                    "package_expiry": user.package_expiry,
+                    "referred_by": user.referred_by
+                },
+                "referrer": {
+                    "id": referrer.id if referrer else None,
+                    "email": referrer.email if referrer else None,
+                    "is_unlimited": referrer.is_unlimited if referrer else None,
+                    "package_expiry": referrer.package_expiry if referrer else None,
+                    "referral_code": referrer.referral_code if referrer else None
+                } if referrer else None,
+                "subscription": {
+                    "id": subscription.id,
+                    "status": subscription.status,
+                    "current_period_end": subscription.current_period_end,
+                    "trial_end": subscription.trial_end
+                }
+            }, status=200)
+            
+        except Subscription.DoesNotExist:
+            return Response({"error": "Subscription not found"}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+
+class CheckReferralStatusView(APIView):
+    """Check current user's referral status and benefits"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        """Get current user's referral status"""
+        user = request.user
+        
+        # Count referrals made by this user
+        referral_count = User.objects.filter(referred_by=user.referral_code).count()
+        
+        # Get referrer info if user was referred
+        referrer = None
+        if user.referred_by:
+            try:
+                referrer = User.objects.get(referral_code=user.referred_by)
+            except User.DoesNotExist:
+                pass
+        
+        return Response({
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "referral_code": user.referral_code,
+                "my_referral_link": user.my_referral_link,
+                "referred_by": user.referred_by,
+                "is_unlimited": user.is_unlimited,
+                "package_expiry": user.package_expiry,
+                "favorite_item": user.favorite_item,
+                "referral_count": referral_count
+            },
+            "referrer": {
+                "id": referrer.id if referrer else None,
+                "email": referrer.email if referrer else None,
+                "referral_code": referrer.referral_code if referrer else None
+            } if referrer else None,
+            "referred_users": [
+                {
+                    "id": ref_user.id,
+                    "email": ref_user.email,
+                    "is_active": ref_user.is_active
+                }
+                for ref_user in User.objects.filter(referred_by=user.referral_code)
+            ]
+        }, status=200)
+
+
+
 @csrf_exempt
 def stripe_webhook(request):
     payload = request.body
@@ -348,12 +510,13 @@ def stripe_webhook(request):
         return HttpResponse(status=400)
 
     try:
-        # ✅ Save event in DB for debugging/logging
+        
         WebhookEvent.objects.create(
             event_id=event["id"],
             type=event["type"],
             data=event["data"]["object"],
         )
+        
         logger.info(f"Webhook event saved to database: {event['id']}")
     except Exception as e:
         logger.error(f"Failed to save webhook event: {str(e)}")
@@ -365,7 +528,7 @@ def stripe_webhook(request):
     logger.info(f"Processing webhook event: {event_type}")
 
     try:
-        # ✅ Handle checkout session completed
+        
         if event_type == "checkout.session.completed":
             logger.info("Processing checkout.session.completed")
             
@@ -410,13 +573,22 @@ def stripe_webhook(request):
                         subscription.save()
                         
                         logger.info(f"Updated subscription {subscription.id} with Stripe data")
+                        
+                        # Process referral benefits after successful subscription creation
+                        try:
+                            user = User.objects.get(id=user_id)
+                            process_referral_benefits(user, subscription)
+                        except User.DoesNotExist:
+                            logger.error(f"User with id {user_id} not found for referral processing")
+                        except Exception as e:
+                            logger.error(f"Error in referral processing: {str(e)}")
+                            
                     else:
                         logger.warning(f"No pending subscription found for user {user_id}")
                         
                 except Exception as e:
                     logger.error(f"Error processing checkout.session.completed: {str(e)}")
 
-        # ✅ Handle subscription created
         elif event_type == "customer.subscription.created":
             logger.info("Processing customer.subscription.created")
             
@@ -444,6 +616,16 @@ def stripe_webhook(request):
                     },
                 )
                 logger.info(f"Created/updated subscription for Stripe ID: {obj['id']}")
+                
+                # Process referral benefits for subscription.created event
+                try:
+                    subscription = Subscription.objects.get(stripe_subscription_id=obj["id"])
+                    if subscription.user:
+                        process_referral_benefits(subscription.user, subscription)
+                except Subscription.DoesNotExist:
+                    logger.error(f"Subscription with Stripe ID {obj['id']} not found for referral processing")
+                except Exception as e:
+                    logger.error(f"Error in referral processing for subscription.created: {str(e)}")
                 
             except Exception as e:
                 logger.error(f"Error processing customer.subscription.created: {str(e)}")

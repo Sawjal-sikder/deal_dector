@@ -48,6 +48,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     referred_by = models.CharField(max_length=50, blank=True, null=True)
     my_referral_link = models.URLField(max_length=200, blank=True, null=True)
     favorite_item = models.PositiveIntegerField(default=3)
+    is_unlimited = models.BooleanField(default=False)
+    is_premium = models.BooleanField(default=False)
+    premium_expiry = models.DateTimeField(blank=True, null=True)
+    package_expiry = models.DateTimeField(blank=True, null=True)
+    create_date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     objects = CustomUserManager()
 
@@ -67,7 +72,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 
     def __str__(self):
-        return self.full_name
+        return self.full_name or self.email or f"User {self.pk}"
+
 
     def email_user(self, subject, message, from_email=None, **kwargs):
         """Send an email to this user."""
@@ -94,3 +100,13 @@ class PasswordResetCode(models.Model):
     def is_expired(self):
         return self.created_at + timedelta(minutes=2) < timezone.now()
     
+    
+    
+class PromoCode(models.Model):
+    code = models.CharField(max_length=50, unique=True)
+    duration_days = models.PositiveIntegerField(default=30)  
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.code

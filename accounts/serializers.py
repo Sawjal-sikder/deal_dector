@@ -6,8 +6,7 @@ from django.contrib.auth import password_validation
 from django.contrib.auth import get_user_model
 from .celery_task import Celery_send_mail
 from rest_framework import serializers
-from .models import PasswordResetCode
-from .models import CustomUser
+from .models import *
 
 User = get_user_model()
 
@@ -285,8 +284,15 @@ class ChangePasswordSerializer(serializers.Serializer):
     
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
-    
-    
+
+
+class UserTriggerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'is_active']
+        read_only_fields = ['id']
+
+
 class UpdateProfileSerializer(serializers.ModelSerializer):
     old_password = serializers.CharField(write_only=True, required=False)
     new_password = serializers.CharField(write_only=True, required=False)
@@ -332,7 +338,21 @@ class UserSerializer(serializers.ModelSerializer):
     count_referrals = serializers.SerializerMethodField()
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'full_name', 'phone_number', 'profile_picture','my_referral_link','referral_code','referred_by','favorite_item', 'count_referrals']
+        fields = ['id',
+                  'email',
+                  'full_name',
+                  'phone_number', 
+                  'profile_picture',
+                  'my_referral_link',
+                  'referral_code',
+                  'referred_by',
+                  'favorite_item', 
+                  'count_referrals',
+                  'is_unlimited',
+                  'package_expiry',
+                  'premium_expiry',
+                  'is_active'
+                  ]
         
     def get_count_referrals(self, obj):
         return CustomUser.objects.filter(referred_by=obj.referral_code).count()
@@ -341,7 +361,29 @@ class UserDetailSerializer(serializers.ModelSerializer):
     count_referrals = serializers.SerializerMethodField()
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'full_name', 'phone_number', 'profile_picture','my_referral_link','referral_code','referred_by','favorite_item', 'count_referrals']
+        fields = ['id', 
+                  'email', 
+                  'full_name', 
+                  'phone_number', 
+                  'profile_picture',
+                  'my_referral_link',
+                  'referral_code',
+                  'referred_by',
+                  'favorite_item', 
+                  'count_referrals',
+                  'is_unlimited',
+                  'package_expiry',
+                  'is_premium',
+                  'premium_expiry',
+                  'is_active'
+                  ]
         
     def get_count_referrals(self, obj):
         return CustomUser.objects.filter(referred_by=obj.referral_code).count()
+    
+    
+class PromoCodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PromoCode
+        fields = ['id', 'code', 'duration_days', 'is_active', 'created_at']
+        readOnly_fields = ['id', 'created_at']

@@ -10,5 +10,7 @@ urlpatterns = [
       path("webhook/", stripe_webhook, name="stripe-webhook"),
       path("plans/", PlanListCreateView.as_view(), name="plan-list-create"),
       path("plans/<int:id>/", PlanUpdateView.as_view(), name="plan-update"),
+      path("test-referral-benefits/", TestReferralBenefitsView.as_view(), name="test-referral-benefits"),
+      path("referral-status/", CheckReferralStatusView.as_view(), name="referral-status"),
 
 ]
