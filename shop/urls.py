@@ -2,6 +2,18 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
+    
+    path('tables/', AllTablesMySQLView.as_view(), name='mysql-table-list'),
+    path('product-discounts/', CurrentDiscountsMySQLView.as_view(), name='current-discounts-products'),
+    path('product-discounts/<int:product_id>/', ProductDetailsMySQLView.as_view(), name='product-discounts'),
+    
+    
+    
+    
+    
+    
+    
+    
     path('supershops/', SupershopListCreateView.as_view(), name='supershop-list-create'),
     path('supershops/<int:pk>/', SupershopDetailView.as_view(), name='supershop-detail'),
     path('categories/', CategoryListCreateView.as_view(), name='category-list-create'),

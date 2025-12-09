@@ -1,3 +1,68 @@
+
+# form mysql fetch
+from .fetch_mysql import DB_Query
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+# from mysql fetch
+class AllTablesMySQLView(APIView):
+    def get(self, request):
+        data = DB_Query()
+        data = {
+            "total_count": len(data),
+            "current_discounts": data
+        }
+        return Response({"tables": data})
+    
+
+class CurrentDiscountsMySQLView(APIView):
+    def get(self, request):
+        query = "SELECT * FROM current_discounts;"
+        data = DB_Query(query=query)
+        return Response({
+            "total_products": len(data),
+            "current_discounts": data
+                        })
+        
+
+class ProductDetailsMySQLView(APIView):
+    def get(self, request, product_id):
+        query = f"SELECT * FROM products WHERE product_id = {product_id};"
+        data = DB_Query(query=query)
+        if data:
+            return Response({"product_details": data[0]})
+        else:
+            return Response({"message": "Product not found."}, status=404)  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from payment.paymentPermission import HasActiveSubscription
 from .pagination import StandardResultsSetPagination
