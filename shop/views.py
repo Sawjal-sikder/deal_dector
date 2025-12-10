@@ -1,11 +1,26 @@
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from payment.paymentPermission import HasActiveSubscription
+from .pagination import StandardResultsSetPagination
+from rest_framework.permissions import AllowAny
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, filters
+from rest_framework import status
+from .serializers import *
+from datetime import date
+from .models import *
+from django.core.cache import cache
+
 
 # form mysql fetch
 from .fetch_mysql import DB_Query
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import permissions
 
 # from mysql fetch
 class AllTablesMySQLView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
     def get(self, request):
         data = DB_Query()
         data = {
@@ -16,6 +31,7 @@ class AllTablesMySQLView(APIView):
     
 
 class CurrentDiscountsMySQLView(APIView):
+    permission_classes = [permissions.AllowAny]
     def get(self, request):
         query = "SELECT * FROM current_discounts;"
         data = DB_Query(query=query)
@@ -24,8 +40,20 @@ class CurrentDiscountsMySQLView(APIView):
             "current_discounts": data
                         })
         
+        
+class ProductMySQLView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def get(self, request):
+        query = "SELECT * FROM products;"
+        data = DB_Query(query=query)
+        return Response({
+            "total_products": len(data),
+            "products": data
+                        })
+        
 
 class ProductDetailsMySQLView(APIView):
+    permission_classes = [permissions.AllowAny]
     def get(self, request, product_id):
         query = f"SELECT * FROM products WHERE product_id = {product_id};"
         data = DB_Query(query=query)
@@ -35,6 +63,283 @@ class ProductDetailsMySQLView(APIView):
             return Response({"message": "Product not found."}, status=404)  
 
 
+class CategoryMySQLView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def get(self, request):
+        query = "SELECT * FROM categories;"
+        data = DB_Query(query=query)
+        return Response({
+            "total_categories": len(data),
+            "categories": data
+                        })
+
+
+class SupermarketMySQLView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def get(self, request):
+        query = "SELECT * FROM supermarkets;"
+        data = DB_Query(query=query)
+        return Response({
+            "total_supermarkets": len(data),
+            "supermarkets": data
+                        })
+
+
+class CategoryWiseProductsMySQLView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def get(self, request):
+        category_name = request.query_params.get("category_name")
+        
+        if category_name == "" or category_name is None or category_name.lower() == "all":
+            query = "SELECT * FROM current_discounts;"
+            data = DB_Query(query=query)
+            return Response({
+                "total_products": len(data),
+                "products": data
+                            })
+        else:
+            query = f"SELECT * FROM current_discounts WHERE category_name = '{category_name}';"
+            data = DB_Query(query=query)
+            return Response({
+                f"total_{category_name}_products": len(data),
+                "products": data
+                            })
+
+
+
+# create and Delete favorite products
+class FavoriteCreateDeleteView(APIView):  
+    # permission_classes = [HasActiveSubscription]
+
+    def post(self, request, product_id=None):        
+        user = request.user
+
+        # Check if the product is already in favorites
+        existing_favorite = Favorite.objects.filter(user=user, product_id=product_id).first()
+        if existing_favorite:
+            # if it exists, delete it (toggle behavior)
+            existing_favorite.delete()
+            return Response(
+                {"message": "This product deleted from favorites."},
+                status=status.HTTP_204_NO_CONTENT
+            )
+
+        # Check current_discounts table
+        cache_key = f"current_discount_{product_id}"
+        data = cache.get(cache_key)
+
+        if not data:
+            # Safe: ensure product_id is int to avoid SQL injection
+            try:
+                product_id = str(product_id)
+            except ValueError:
+                return Response(
+                    {"message": "Invalid product ID."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Query
+            query = f"SELECT id, product_id, name, price FROM current_discounts WHERE product_id = {product_id} LIMIT 1;"
+            data = DB_Query(query=query)
+            
+            if data:
+                cache.set(cache_key, data[0], timeout=300)  # cache for 5 minutes
+
+        if not data:
+            return Response(
+                {"message": "This product does not exist in current discounts."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Create the favorite
+        favorite = Favorite.objects.create(user=user, product_id=product_id)
+        serializer = FavoriteSerializer(favorite)
+        return Response(
+            {"message": "Favorite created successfully.", "favorite": serializer.data},
+            status=status.HTTP_201_CREATED
+        )
+        
+        
+        
+class FavoriteView(generics.ListAPIView):
+    serializer_class = FavoriteSerializer
+    # permission_classes = [HasActiveSubscription]
+
+    def get_queryset(self):
+        return Favorite.objects.filter(user=self.request.user)
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        
+        # Fetch product details from MySQL for each favorite
+        product_data = []
+        for product in queryset:
+            product_id = product.product_id
+            print("Fetching product_id:", product_id)
+            # query = f"SELECT * FROM products WHERE product_id = 750706;"
+            query = f"SELECT * FROM products WHERE product_id = {product_id};"
+            data = DB_Query(query=query)
+            if data:
+                product_info = data[0]
+                product_info['favorite_id'] = product.id
+                product_info['created_at'] = str(product.created_at)
+                product_data.append(product_info)
+        
+        # out of loop test
+        # query = f"SELECT * FROM products WHERE product_id = 750706;"
+        # product_data = DB_Query(query=query)
+        
+        return Response({
+            "total_favorites": len(product_data),
+            "favorites": product_data
+        })
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        # Get all product_ids from favorites
+        # product_ids = [fav.product_id for fav in queryset]
+        
+        # if not product_ids:
+        #     return Response({
+        #         "total_favorites": 0,
+        #         "favorites": []
+        #     })
+        
+        # # Fetch product details from MySQL for all favorite product_ids
+        # product_ids_str = ', '.join(product_ids)
+        # query = f"SELECT * FROM products WHERE product_id IN ({product_ids_str});"
+        # products_data = DB_Query(query=query)
+        # print("----------------------------------------------------")
+        # print(products_data)
+        # print("----------------------------------------------------")
+        
+        # # Create a dictionary for quick lookup
+        # products_dict = {str(product['product_id']): product for product in products_data}
+        
+        # # Combine favorite data with product details
+        # favorites_with_details = []
+        # for favorite in queryset:
+        #     product_details = products_dict.get(str(favorite.product_id))
+            
+        #     favorite_product = product_details if product_details else None
+        #     favorite_data = {
+        #         "id": favorite.id,
+        #         "product_id": favorite.product_id,
+        #         "product_name": favorite_product.get("name") if favorite_product else None,
+        #         "supermarket_name": favorite_product.get("supermarket_name") if favorite_product else None,
+        #         "price": favorite_product.get("price") if favorite_product else None,
+        #         "image_url": favorite_product.get("image_url") if favorite_product else None,
+        #         "created_at": favorite.created_at,
+        #     }
+        #     favorites_with_details.append(favorite_data)
+        
+        # return Response({
+        #     "total_favorites": len(products_data),
+        #     "favorites": products_data
+        # })
+            
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+   
 
 
 
@@ -49,32 +354,6 @@ class ProductDetailsMySQLView(APIView):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-from payment.paymentPermission import HasActiveSubscription
-from .pagination import StandardResultsSetPagination
-from rest_framework.permissions import AllowAny
-from django.shortcuts import get_object_or_404
-from rest_framework.response import Response
-from rest_framework import generics, filters
-from rest_framework.views import APIView
-from rest_framework import status
-from .serializers import *
-from datetime import date
-from .models import *
 
 
 class SupershopListCreateView(generics.ListCreateAPIView):
@@ -224,69 +503,6 @@ class CategoryByProductsByShopView(generics.ListAPIView):
     
 
 
-# create and Delete favorite products
-class FavoriteCreateDeleteView(APIView):  
-    permission_classes = [HasActiveSubscription]
-
-    def post(self, request, product_id=None):
-        product = get_object_or_404(Product, id=product_id)
-        
-        # Check if the product is already in favorites
-        existing_favorite = Favorite.objects.filter(user=request.user, product=product).first()
-        if existing_favorite:
-            serializer = FavoriteCreateDeleteSerializer(existing_favorite)
-            return Response(
-                {"message": "This product is already in favorites.", "Favorite Item": serializer.data},
-                status=status.HTTP_200_OK
-            )
-        
-        # Get user's favorite item limit and current count
-        user = request.user
-        favorite_balance = user.favorite_item
-        favorite_item_used = Favorite.objects.filter(user=user).count()
-
-        # Case 1: Unlimited package (still valid)
-        if user.is_unlimited and user.package_expiry:
-            favorite = Favorite.objects.create(user=user, product=product)
-            serializer = FavoriteCreateDeleteSerializer(favorite)
-            return Response(
-                {"message": "Favorite created successfully (unlimited plan).", "Favorite Item": serializer.data},
-                status=status.HTTP_201_CREATED
-            )
-
-        # Case 2: Reached the limit but allow creating
-        elif favorite_item_used < favorite_balance:
-            favorite = Favorite.objects.create(user=user, product=product)
-            serializer = FavoriteCreateDeleteSerializer(favorite)
-            return Response(
-                {"message": "Favorite created successfully (over limit allowed).", "Favorite Item": serializer.data},
-                status=status.HTTP_201_CREATED
-            )
-
-        # Case 3: Did not reach the limit → block creation
-        else:
-            return Response(
-                {"message": "You cannot add a favorite until your limit is reached."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-    def delete(self, request, product_id=None):
-        favorite = Favorite.objects.filter(user=request.user, product_id=product_id).first()
-        if not favorite:
-            return Response(
-                {"message": "This product is not in your favorites."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        favorite.delete()
-        return Response({"message": "Favorite deleted successfully."}, status=status.HTTP_200_OK)
-    
-    
-class FavoriteView(generics.ListAPIView):
-    serializer_class = FavoriteListSerializer
-    permission_classes = [HasActiveSubscription]
-
-    def get_queryset(self):
-        return Favorite.objects.filter(user=self.request.user).select_related('product', 'user')
     
     
 # create and Delete favorite products

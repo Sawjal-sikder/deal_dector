@@ -10,7 +10,7 @@ class SupershopAdmin(TranslatableAdmin):
       
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
-    list_display = ('user', 'product', 'created_at')
+    list_display = ('user', 'product_id', 'created_at')
 
 
 @admin.register(ProductSubscription)

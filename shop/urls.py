@@ -4,8 +4,25 @@ from .views import *
 urlpatterns = [
     
     path('tables/', AllTablesMySQLView.as_view(), name='mysql-table-list'),
+    path("products/", ProductMySQLView.as_view(), name="product-mysql-list"),
     path('product-discounts/', CurrentDiscountsMySQLView.as_view(), name='current-discounts-products'),
     path('product-discounts/<int:product_id>/', ProductDetailsMySQLView.as_view(), name='product-discounts'),
+    
+    # Category MySQL fetch
+    path('categories/', CategoryMySQLView.as_view(), name='category-mysql-list'),
+    
+    # Supermarket MySQL fetch
+    path('supermarkets/', SupermarketMySQLView.as_view(), name='supermarket-mysql-list'),
+    
+    
+    
+    
+    # Category wise products MySQL fetch
+    path('category-products/', CategoryWiseProductsMySQLView.as_view(), name='category-wise-products-mysql'),
+    
+    # favorite products
+    path('favorites/', FavoriteView.as_view(), name='favorite-list'),
+    path('favorites/<int:product_id>/', FavoriteCreateDeleteView.as_view(), name='favorite-create-delete'),
     
     
     
@@ -28,9 +45,6 @@ urlpatterns = [
     path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
     path('prices/', ProductPriceCreateView.as_view(), name='product-price-create'),
     path('prices/<int:pk>/', ProductPriceUpdateView.as_view(), name='product-price-update'),
-    # favorite products
-    path('favorites/<product_id>/', FavoriteCreateDeleteView.as_view(), name='favorite-create-delete'),
-    path('favorites/', FavoriteView.as_view(), name='favorite-list'),
     
     # wishlist products
     path('wishlists/<product_id>/', WishlistCreateDeleteView.as_view(), name='wishlist-create-delete'),

@@ -57,14 +57,31 @@ class ProductPrice(models.Model):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# For Favorite products
 class Favorite(models.Model):
     user = models.ForeignKey(User, related_name='favorites', on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, related_name='favorites', on_delete=models.CASCADE)
+    product_id = models.CharField(max_length=55)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Favorite: {self.user} - {self.product}"
-
+        return f"Favorite: {self.user} - {self.product_id}"
+    
+    
 # For Wishlist
 class Wishlist(models.Model):
     user = models.ForeignKey(User, related_name='wishlists', on_delete=models.CASCADE)

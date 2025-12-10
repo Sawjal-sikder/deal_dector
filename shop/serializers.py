@@ -6,6 +6,53 @@ from .models import *
 from accounts.models import *
 from django.conf import settings
 
+# favorites serializers   
+class FavoriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = "__all__"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class SupershopSerializer(TranslatableModelSerializer):
     translations = TranslatedFieldsField(shared_model=Supershop)
 
@@ -331,11 +378,7 @@ class CategoryProductsByShopSerializer(serializers.ModelSerializer):
         fields = ['id', 'category_name', 'products']
 
        
-# favorites serializers   
-class FavoriteCreateDeleteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Favorite
-        fields = "__all__"
+
 
 class FavoriteListSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
