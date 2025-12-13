@@ -7,6 +7,10 @@ from django.conf.urls.static import static
 from django.http import HttpResponseRedirect
 from django.http import JsonResponse
 
+# from rest_framework import routers
+def home(request):
+    return JsonResponse({"message": "Welcome to the DealDector API"})
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('accounts.urls')),
@@ -14,10 +18,9 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('api/payment/', include('payment.urls')),
     path('api/ai/', include('ai_chatbot.urls')),
-    path('', lambda request: HttpResponseRedirect('/api/auth/register/')),
+    path('', home),
 
 ]
-
 
 urlpatterns += [
     re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
