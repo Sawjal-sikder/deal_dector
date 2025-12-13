@@ -234,7 +234,7 @@ class CreateSubscriptionView(APIView):
                 success_url=success_url + '?session_id={CHECKOUT_SESSION_ID}',
                 cancel_url=cancel_url,
                 subscription_data={
-                    'trial_period_days': plan.trial_days,
+                    'trial_period_days': plan.trial_days if plan.trial_days else None,
                     'metadata': {
                         'user_id': request.user.id,
                         'plan_id': plan.id,
