@@ -24,6 +24,25 @@ urlpatterns = [
     path('favorites/', FavoriteView.as_view(), name='favorite-list'),
     path('favorites/<int:product_id>/', FavoriteCreateDeleteView.as_view(), name='favorite-create-delete'),
     
+    # wishlist products
+    path('wishlists/<product_id>/', WishlistCreateDeleteView.as_view(), name='wishlist-create-delete'),
+    path('wishlists/', WishlistView.as_view(), name='wishlist-list'),
+    
+    
+    # ShoppingList products
+    # path('shopping-lists/create/', ShoppingListCreateDeleteView.as_view(), name='shopping-list-create'),
+    path('shopping-lists/<product_id>/', ShoppingListCreateDeleteView.as_view(), name='shopping-list-create-delete'),
+    path('shopping-lists/', ShoppingListView.as_view(), name='shopping-list-list'),
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
@@ -46,15 +65,9 @@ urlpatterns = [
     path('prices/', ProductPriceCreateView.as_view(), name='product-price-create'),
     path('prices/<int:pk>/', ProductPriceUpdateView.as_view(), name='product-price-update'),
     
-    # wishlist products
-    path('wishlists/<product_id>/', WishlistCreateDeleteView.as_view(), name='wishlist-create-delete'),
-    path('wishlists/', WishlistView.as_view(), name='wishlist-list'),
 
     
-    # ShoppingList products
-    path('shopping-lists/create/', ShoppingListCreateDeleteView.as_view(), name='shopping-list-create'),
-    path('shopping-lists/<product_id>/', ShoppingListCreateDeleteView.as_view(), name='shopping-list-create-delete'),
-    path('shopping-lists/', ShoppingListView.as_view(), name='shopping-list-list'),
+
 
     # Notification system
     path('subscribe/<int:product_id>/', ToggleSubscriptionView.as_view(), name='product-subscribe-unsubscribe'),

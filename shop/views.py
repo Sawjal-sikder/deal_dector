@@ -87,23 +87,57 @@ class SupermarketMySQLView(APIView):
 
 class CategoryWiseProductsMySQLView(APIView):
     permission_classes = [permissions.AllowAny]
+
     def get(self, request):
         category_name = request.query_params.get("category_name")
-        
-        if category_name == "" or category_name is None or category_name.lower() == "all":
-            query = "SELECT * FROM current_discounts;"
-            data = DB_Query(query=query)
-            return Response({
-                "total_products": len(data),
-                "products": data
-                            })
-        else:
-            query = f"SELECT * FROM current_discounts WHERE category_name = '{category_name}';"
-            data = DB_Query(query=query)
-            return Response({
-                f"total_{category_name}_products": len(data),
-                "products": data
-                            })
+        search = request.query_params.get("search")
+
+        products = cache.get("products")
+        discount_products = cache.get("discount_products")
+
+        if not products:
+            products = DB_Query(query="SELECT * FROM products;")
+            cache.set("products", products, timeout=3600)
+
+        if not discount_products:
+            discount_products = DB_Query(query="SELECT * FROM current_discounts;")
+            cache.set("discount_products", discount_products, timeout=3600)
+
+        # product_id → image_url
+        product_image_map = {
+            p["product_id"]: p.get("image_url")
+            for p in products
+        }
+
+        # attach image_url
+        for item in discount_products:
+            item["image_url"] = product_image_map.get(item["product_id"])
+
+        # base dataset
+        data = discount_products
+
+        # category filter
+        if category_name and category_name.lower() != "all":
+            data = [
+                item for item in data
+                if item.get("category_name", "").lower() == category_name.lower()
+            ]
+
+        # search filter
+        if search:
+            search = search.lower()
+            data = [
+                item for item in data
+                if search in item.get("name", "").lower()
+
+            ]
+
+        return Response({
+            "total_products": len(data),
+            "products": data
+        })
+
+
 
 
 
@@ -195,57 +229,222 @@ class FavoriteView(generics.ListAPIView):
         })
         
         
+
+# create and Delete favorite products
+class WishlistCreateDeleteView(APIView): 
+    # permission_classes = [HasActiveSubscription] 
+
+    def post(self, request, product_id=None):
+        user = request.user
+        wishlist, created = Wishlist.objects.get_or_create(user=user, product_id=product_id)
+        if not created:
+            wishlist.delete()
+            return Response(
+                {"message": "This product deleted from wishlist."},
+                status=status.HTTP_204_NO_CONTENT
+            )
+        serializer = WishlistSerializer(wishlist)
+        return Response(
+            {"message": "Wishlist created successfully.", "wishlist": serializer.data},
+            status=status.HTTP_201_CREATED
+        )
         
         
         
         
+    
+class WishlistView(generics.ListAPIView):
+    serializer_class = WishlistSerializer
+    # permission_classes = [HasActiveSubscription]
+
+    def get_queryset(self):
+        return Wishlist.objects.filter(user=self.request.user)
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
         
+        # if product have cache, use it
+        products = cache.get('product')
+        discount_products = cache.get('discount_product')
         
-        
-        # Get all product_ids from favorites
-        # product_ids = [fav.product_id for fav in queryset]
-        
-        # if not product_ids:
-        #     return Response({
-        #         "total_favorites": 0,
-        #         "favorites": []
-        #     })
-        
-        # # Fetch product details from MySQL for all favorite product_ids
-        # product_ids_str = ', '.join(product_ids)
-        # query = f"SELECT * FROM products WHERE product_id IN ({product_ids_str});"
-        # products_data = DB_Query(query=query)
-        # print("----------------------------------------------------")
-        # print(products_data)
-        # print("----------------------------------------------------")
-        
-        # # Create a dictionary for quick lookup
-        # products_dict = {str(product['product_id']): product for product in products_data}
-        
-        # # Combine favorite data with product details
-        # favorites_with_details = []
-        # for favorite in queryset:
-        #     product_details = products_dict.get(str(favorite.product_id))
+        if not products:
+            products = DB_Query(query="SELECT * FROM products;")
+            cache.set('product', products, timeout=3600)  
             
-        #     favorite_product = product_details if product_details else None
-        #     favorite_data = {
-        #         "id": favorite.id,
-        #         "product_id": favorite.product_id,
-        #         "product_name": favorite_product.get("name") if favorite_product else None,
-        #         "supermarket_name": favorite_product.get("supermarket_name") if favorite_product else None,
-        #         "price": favorite_product.get("price") if favorite_product else None,
-        #         "image_url": favorite_product.get("image_url") if favorite_product else None,
-        #         "created_at": favorite.created_at,
-        #     }
-        #     favorites_with_details.append(favorite_data)
+        if not discount_products:
+            discount_products = DB_Query(query="SELECT * FROM current_discounts;")
+            cache.set('discount_product', discount_products, timeout=3600)
         
-        # return Response({
-        #     "total_favorites": len(products_data),
-        #     "favorites": products_data
-        # })
+        # Fetch product details from MySQL for each wishlist item
+        product_data = []
+        for product in queryset:
+            product_id = product.product_id
             
+            discount_products_map = {str(item['product_id']): item for item in discount_products}
+            products_map = {str(item['product_id']): item for item in products}
+            if products_map.get(str(product_id)):
+                product_info = products_map.get(str(product_id))
+                product_info['wishlist_id'] = product.id
+                product_info['created_at'] = str(product.created_at)
+                product_data.append(product_info)
+        
+        return Response({
+            "total_wishlists": len(product_data),
+            "wishlists": product_data
+        })
+
+
+
+   
+# create and Delete ShoppingList
+class ShoppingListCreateDeleteView(APIView):
+    # permission_classes = [HasActiveSubscription]
+
+    def post(self, request, product_id=None):
+        user = request.user
+
+        shopping_list, created = ShoppingList.objects.get_or_create(user=user, product_id=product_id)
+        if not created:
+            shopping_list.delete()
+            return Response(
+                {"message": "This product deleted from shopping list."},
+                status=status.HTTP_204_NO_CONTENT
+            )
+        serializer = ShoppingListSerializer(shopping_list)
+        return Response(
+            {"message": "Shopping list item created successfully.", "shopping_list": serializer.data},
+            status=status.HTTP_201_CREATED
+        )
+
+
+class ShoppingListView(generics.ListAPIView):
+    serializer_class = ShoppingListSerializer
+    # permission_classes = [HasActiveSubscription]
+
+    def get_queryset(self):
+        return ShoppingList.objects.filter(user=self.request.user)
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        
+        # if product have cache, use it
+        products = cache.get('product')
+        discount_products = cache.get('discount_product')
+        
+        if not products:
+            products = DB_Query(query="SELECT * FROM products;")
+            cache.set('product', products, timeout=3600)
+        
+        if not discount_products:
+            discount_products = DB_Query(query="SELECT * FROM current_discounts;")
+            cache.set('discount_product', discount_products, timeout=3600)
+        
+        # Fetch product details from MySQL for each shopping list item
+        product_data = []
+        for product in queryset:
+            product_id = product.product_id
+            
+            discount_products_map = {str(item['product_id']): item for item in discount_products}
+            products_map = {str(item['product_id']): item for item in products}
+            if products_map.get(str(product_id)):
+                product_info = products_map.get(str(product_id))
+                product_info['shopping_list_id'] = product.id
+                product_info['created_at'] = str(product.created_at)
+                product_data.append(product_info)
+        
+        return Response({
+            "total_shopping_lists": len(product_data),
+            "shopping_lists": product_data
+        })
+
+
         
         
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
         
         
         
@@ -505,101 +704,11 @@ class CategoryByProductsByShopView(generics.ListAPIView):
 
     
     
-# create and Delete favorite products
-class WishlistCreateDeleteView(APIView): 
-    permission_classes = [HasActiveSubscription] 
 
-    def post(self, request, product_id=None):
-        product = get_object_or_404(Product, id=product_id)
-        wishlist, created = Wishlist.objects.get_or_create(user=request.user, product=product)
-
-        if created:
-            serializer = WishlistCreateDeleteSerializer(wishlist)
-            return Response(
-                {"message": "Wishlist created successfully.", "Wishlist Item": serializer.data},
-                status=status.HTTP_201_CREATED
-            )
-        else:
-            serializer = WishlistCreateDeleteSerializer(wishlist)
-            return Response(
-                {"message": "This product is already in your wishlist.", "Wishlist Item": serializer.data},
-                status=status.HTTP_200_OK
-            )
-
-    def delete(self, request, product_id=None):
-        wishlist = Wishlist.objects.filter(user=request.user, product_id=product_id).first()
-        if not wishlist:
-            return Response(
-                {"message": "This product is not in your wishlist."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        wishlist.delete()
-        return Response({"message": "Wishlist deleted successfully."}, status=status.HTTP_200_OK)
-
-    
-class WishlistView(generics.ListAPIView):
-    serializer_class = WishlistListSerializer
-    permission_classes = [HasActiveSubscription]
-
-    def get_queryset(self):
-        return Wishlist.objects.filter(user=self.request.user).select_related('product', 'user')
 
 
     
-    
-# create and Delete ShoppingList
-class ShoppingListCreateDeleteView(APIView):
-    permission_classes = [HasActiveSubscription]
-
-    def post(self, request):
-        product_ids = request.data.get("product_ids", [])
-        
-        if not isinstance(product_ids, list) or not product_ids:
-            return Response(
-                {"error": "You must provide a list of product_ids."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        created_items = []
-        already_existing = []
-
-        for pid in product_ids:
-            product = get_object_or_404(Product, id=pid)
-            shopping_list, created = ShoppingList.objects.get_or_create(user=request.user, product=product)
-
-            serializer = ShoppingListCreateDeleteSerializer(shopping_list)
-
-            if created:
-                created_items.append(serializer.data)
-            else:
-                already_existing.append(serializer.data)
-
-        return Response(
-            {
-                "message": "Processed shopping list items.",
-                "created_items": created_items,
-                "already_existing": already_existing,
-            },
-            status=status.HTTP_201_CREATED if created_items else status.HTTP_200_OK
-        )
-
-    def delete(self, request, product_id=None):
-        shopping_list = ShoppingList.objects.filter(user=request.user, product_id=product_id).first()
-        if not shopping_list:
-            return Response(
-                {"message": "This product is not in your shopping list."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        shopping_list.delete()
-        return Response({"message": "ShoppingList deleted successfully."}, status=status.HTTP_200_OK)
-
-
-class ShoppingListView(generics.ListAPIView):
-    serializer_class = ShoppingListListSerializer
-    permission_classes = [HasActiveSubscription]
-
-    def get_queryset(self):
-        return ShoppingList.objects.filter(user=self.request.user).select_related('product', 'user')
+ 
 
 
     

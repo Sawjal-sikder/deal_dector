@@ -85,21 +85,27 @@ class Favorite(models.Model):
 # For Wishlist
 class Wishlist(models.Model):
     user = models.ForeignKey(User, related_name='wishlists', on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, related_name='wishlists', on_delete=models.CASCADE)
+    product_id = models.CharField(max_length=55)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Favorite: {self.user} - {self.product}"
+        return f"Favorite: {self.user} - {self.product_id}"
 
 # For Shopping List
 class ShoppingList(models.Model):
     user = models.ForeignKey(User, related_name='shopping_lists', on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, related_name='shopping_lists', on_delete=models.CASCADE)
+    product_id = models.CharField(max_length=55)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Shopping List: {self.user} - {self.product}"
-
+        return f"Shopping List: {self.user} - {self.product_id}"
+    
+    
+    
+    
+    
+    
+    
     
 class ProductSubscription(models.Model):
     user = models.ForeignKey(User, related_name='product_subscriptions', on_delete=models.CASCADE)

@@ -13,7 +13,19 @@ class FavoriteSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+# Wishlist serializers   
+class WishlistSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Wishlist
+        fields = "__all__"
 
+
+
+# ShoppingList serializers
+class ShoppingListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShoppingList
+        fields = "__all__"
 
 
 
@@ -394,11 +406,7 @@ class FavoriteListSerializer(serializers.ModelSerializer):
             return obj.product.notifications.filter(user=request.user).exists()
         return False
 
-# Wishlist serializers   
-class WishlistCreateDeleteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Wishlist
-        fields = "__all__"
+
 
 class WishlistListSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
@@ -407,18 +415,6 @@ class WishlistListSerializer(serializers.ModelSerializer):
         model = Wishlist
         fields = ['id', 'user', 'product']
 
-# ShoppingList serializers
-class ShoppingListCreateDeleteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ShoppingList
-        fields = "__all__"
-
-class ShoppingListListSerializer(serializers.ModelSerializer):
-    product = ProductListSerializer(read_only=True)
-    user = serializers.StringRelatedField(read_only=True)
-    class Meta:
-        model = ShoppingList
-        fields = ['id', 'user', 'product']
         
         
         
