@@ -18,6 +18,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('api/payment/', include('payment.urls')),
     path('api/ai/', include('ai_chatbot.urls')),
+    path('api/service/', include('service.urls')),
     path('', home),
 
 ]

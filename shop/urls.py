@@ -6,7 +6,7 @@ urlpatterns = [
     path('tables/', AllTablesMySQLView.as_view(), name='mysql-table-list'),
     path("products/", ProductMySQLView.as_view(), name="product-mysql-list"),
     path('product-discounts/', CurrentDiscountsMySQLView.as_view(), name='current-discounts-products'),
-    path('product-discounts/<int:product_id>/', ProductDetailsMySQLView.as_view(), name='product-discounts'),
+    path('products/<int:product_id>/', ProductDetailsMySQLView.as_view(), name='product-discounts'),
     
     # Category MySQL fetch
     path('categories/', CategoryMySQLView.as_view(), name='category-mysql-list'),

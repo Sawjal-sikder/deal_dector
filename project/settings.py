@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'shop',
     'payment',
     'ai_chatbot',
+    "service",
     
 ]
 

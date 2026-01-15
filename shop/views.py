@@ -46,16 +46,28 @@ class ProductMySQLView(APIView):
     def get(self, request):
         query = "SELECT * FROM products;"
         data = DB_Query(query=query)
+        
+        products = [
+            {
+                "id": item.get("id"),
+                "name": item.get("name"),
+                "brand": item.get("brand"),
+                "supermarket_id": item.get("supermarket_id"),
+                "unit_amount": item.get("unit_amount"),               
+            }
+            for item in data
+        ]
+        
         return Response({
-            "total_products": len(data),
-            "products": data
-                        })
+            "total_products": len(products),
+            "products": products
+        })
         
 
 class ProductDetailsMySQLView(APIView):
     permission_classes = [permissions.AllowAny]
     def get(self, request, product_id):
-        query = f"SELECT * FROM products WHERE product_id = {product_id};"
+        query = f"SELECT * FROM products WHERE id = {product_id};"
         data = DB_Query(query=query)
         if data:
             return Response({"product_details": data[0]})
