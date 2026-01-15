@@ -286,6 +286,18 @@ SOCIALACCOUNT_ADAPTER = 'accounts.adapter.MySocialAccountAdapter'
 
 
 
+# Cache Configuration (Redis)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_CACHE_URL', 'redis://redis:6379/1'),
+        'TIMEOUT': 60 * 60,  # 1 hour default timeout
+    }
+}
+
+# Cache timeout for products (in seconds) - 24 hours
+PRODUCTS_CACHE_TIMEOUT = int(os.getenv('PRODUCTS_CACHE_TIMEOUT', '86400'))  # 24 hours
+
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
@@ -294,6 +306,14 @@ CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:63
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
+# Celery Beat Schedule
+CELERY_BEAT_SCHEDULE = {
+    'refresh-products-cache-every-24-hours': {
+        'task': 'service.tasks.refresh_products_cache',
+        'schedule': 60 * 60 * 24,  # 24 hours in seconds
+    },
+}
 
 USE_TZ = True
 TIME_ZONE = 'Asia/Dhaka'

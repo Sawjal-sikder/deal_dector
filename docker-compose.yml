@@ -29,6 +29,20 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=project.settings
 
+  beat:
+    build: .
+    container_name: celery_beat
+    command: celery -A project beat --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=project.settings
+
   redis:
     image: redis:7-alpine
     container_name: redis
