@@ -52,6 +52,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_premium = models.BooleanField(default=False)
     premium_expiry = models.DateTimeField(blank=True, null=True)
     package_expiry = models.DateTimeField(blank=True, null=True)
+    is_notification = models.BooleanField(default=False)
     create_date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     objects = CustomUserManager()

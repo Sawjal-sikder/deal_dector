@@ -375,7 +375,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
                   'package_expiry',
                   'is_premium',
                   'premium_expiry',
-                  'is_active'
+                  'is_active',
+                  'is_notification',
                   ]
         
     def get_count_referrals(self, obj):

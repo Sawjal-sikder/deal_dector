@@ -61,6 +61,16 @@ class ProductMySQLView(APIView):
         paginated_data = paginator.paginate_queryset(data, request)
 
         return paginator.get_paginated_response(paginated_data)
+    
+class ProductDetailsView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, product_id):
+        all_products = get_all_products_cached()
+        product = next((p for p in all_products if p.get('id') == product_id), None)
+        if product:
+            return Response(product)
+        return Response({'error': 'Product not found'}, status=404)
 
 
 class RefreshProductsCacheView(APIView):

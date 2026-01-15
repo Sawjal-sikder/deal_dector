@@ -207,3 +207,21 @@ class PromoCodeDetailView(generics.RetrieveUpdateDestroyAPIView):
             {"message": "Promo code deleted successfully"},
             status=status.HTTP_200_OK
         )
+        
+        
+class NotificationToggleview(generics.UpdateAPIView):
+    serializer_class = UserDetailSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_object(self):
+        return self.request.user
+    
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+        is_notification = request.data.get('is_notification', user.is_notification)
+        if isinstance(is_notification, str):
+            is_notification = is_notification.lower() in ('true', '1', 'yes')
+        user.is_notification = is_notification
+        user.save()
+        serializer = self.get_serializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
