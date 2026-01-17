@@ -62,6 +62,7 @@ class ProductMySQLView(APIView):
 
         return paginator.get_paginated_response(paginated_data)
     
+    
 class ProductDetailsView(APIView):
     permission_classes = [permissions.AllowAny]
 

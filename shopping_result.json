@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-01-17T08:51:03.254559+00:00",
+  "generated_by_ai": true,
+  "language": "en",
+  "dish": "Vegetable Stir-Fry",
+  "style": "quick",
+  "items": [
+    "tomatoes",
+    "bell peppers",
+    "zucchini",
+    "onions",
+    "olive oil",
+    "garlic",
+    "salt",
+    "pepper",
+    "soy sauce"
+  ],
+  "steps": [
+    "Heat olive oil in a large pan over medium heat.",
+    "Add the minced garlic and sauté until fragrant.",
+    "Add the sliced onion and cook until it becomes translucent.",
+    "Add the bell pepper and zucchini to the pan, stirring occasionally.",
+    "Once the vegetables start to soften, add the chopped tomatoes.",
+    "Season with salt and pepper, and add a splash of soy sauce if desired.",
+    "Continue to cook until all vegetables are tender but still crisp.",
+    "Serve warm as a side dish or over rice or noodles for a main dish."
+  ],
+  "image_prompt": "Vegetable Stir-Fry, realistic food photography, single serving, no text or logos, clean background, simple home-style plating in a plain bowl or plate, minimal props, natural light, overhead or 45° angle",
+  "image_url": "/media/recipe_images/Vegetable%20Stir-Fry_1768639863.jpg"
+}
