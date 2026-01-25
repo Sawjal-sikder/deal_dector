@@ -1,5 +1,6 @@
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.hashers import check_password
+from payment.models import Subscription
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth import password_validation
@@ -381,6 +382,11 @@ class UserDetailSerializer(serializers.ModelSerializer):
         
     def get_count_referrals(self, obj):
         return CustomUser.objects.filter(referred_by=obj.referral_code).count()
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['is_premium'] = True if Subscription.get_user_active_subscription(user=instance) else False
+        return representation
     
     
 class PromoCodeSerializer(serializers.ModelSerializer):
