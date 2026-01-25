@@ -1,3 +1,4 @@
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.hashers import check_password
 from payment.models import Subscription
@@ -11,6 +12,18 @@ from .models import *
 
 User = get_user_model()
 
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data.update({
+            'user_id': self.user.id,
+            'email': self.user.email,
+            'full_name': self.user.full_name,
+            'is_premium': True if Subscription.get_user_active_subscription(user=self.user) else False,
+        })
+        return data
 
 
 class RegisterSerializer(serializers.ModelSerializer):
