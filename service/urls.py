@@ -1,4 +1,7 @@
 from django.urls import path # type: ignore
+
+from service.views.category_views import CategoryMySQLView
+from service.views.supershop_views import SuperShopMySQLView # type: ignore
 from .views.products_views import (
     ProductMySQLView,
     RefreshProductsCacheView,
@@ -16,6 +19,13 @@ from .views.notification_product_views import (
 from .views.notification import NotificationView # type: ignore
 
 urlpatterns = [
+    # categories
+    path('categories/', CategoryMySQLView.as_view(), name='categories-mysql'),
+    
+    # supermarkets
+    path('supermarkets/', SuperShopMySQLView.as_view(), name='supermarkets-mysql'),
+    
+    # Products
     path('products/', ProductMySQLView.as_view(), name='products-mysql'),
     path('products/<int:product_id>/', ProductDetailsView.as_view(), name='product-details'),
     path('products/refresh-cache/', RefreshProductsCacheView.as_view(), name='refresh-products-cache'),
