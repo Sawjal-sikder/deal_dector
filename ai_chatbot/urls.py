@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path # type: ignore
 from .views import *
 
 urlpatterns = [
@@ -6,4 +6,5 @@ urlpatterns = [
     path("chat-result/<str:task_id>/", ChatResultView.as_view(), name="chat-result"),
     path("chat-history/", ChatHistoryListView.as_view(), name="chat-history"),
     path("recipes/list/", RecipeListView.as_view(), name="recipes"),
+    path("recipes/<int:pk>/", RecipeDetailView.as_view(), name="recipe-detail"),
 ]

@@ -34,6 +34,7 @@ urlpatterns = [
     path('favorite-products/', FavoriteProductListCreateView.as_view(), name='favorite-products'),
     path('favorite-products/<int:pk>/', FavoriteProductDetailView.as_view(), name='favorite-product-detail'),
     
+
     
     # Notification Products can be added here in future
     path('notification-products/', NotificationProductsListCreateView.as_view(), name='notification-products'),

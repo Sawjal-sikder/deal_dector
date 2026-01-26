@@ -1,6 +1,7 @@
 # chats/views.py
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import generics
 from celery.result import AsyncResult
 from rest_framework import status
 from .serializers import *
@@ -77,3 +78,9 @@ class RecipeListView(APIView):
           recipes = ChatHistory.objects.filter(user=request.user, flag="list_generated").order_by('-created_at')
           serializer = RecipeListSerializer(recipes, many=True)
           return Response(serializer.data, status=status.HTTP_200_OK)
+      
+      
+class RecipeDetailView(generics.RetrieveAPIView):
+    queryset = ChatHistory.objects.all()
+    serializer_class = RecipeListSerializer
+    lookup_field = "pk"
