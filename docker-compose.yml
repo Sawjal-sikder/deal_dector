@@ -20,7 +20,7 @@ services:
     container_name: celery_worker
     command: celery -A project worker --loglevel=info
     ports:
-      - "1400301:1400301"
+      - "14101:14101"
     depends_on:
       redis:
         condition: service_healthy
@@ -49,7 +49,7 @@ services:
     image: redis:7-alpine
     container_name: redis_deal_detector
     ports:
-      - "63790301:6379"
+      - "6303:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
