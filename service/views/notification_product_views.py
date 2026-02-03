@@ -12,6 +12,12 @@ class NotificationProductsListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        data = [item for item in serializer.data if item is not None]
+        return response.Response(data)
         
     
     
