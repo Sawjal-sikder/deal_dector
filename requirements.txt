@@ -1,96 +1,23 @@
-# Core Django
-Django
-asgiref
-sqlparse
-tzdata
-
-# Django REST Framework
 djangorestframework
+psycopg2-binary
 django-cors-headers
-django-filter
-
-# Authentication & Authorization
-dj-rest-auth
-django-allauth
-djangorestframework_simplejwt
-PyJWT
-
-# Translation Support
-django-parler
-django-parler-rest
-
-# Celery (Task Queue)
+gunicorn
+python-dotenv
+Pillow
 celery
 redis
-kombu
-amqp
-billiard
-click
-vine
-
-# Payment Processing
+boto3
+django-storages
+djangorestframework-simplejwt
+django-filter
+django-allauth
+dj-rest-auth
+django-parler
+django-parler-rest
+requests
+cryptography
+pymysql
 stripe
-
-# AI Functionality
 openai
 langdetect
-
-# HTTP Clients & Networking
-requests
-httpx
-httpcore
-h11
-urllib3
-certifi
-charset-normalizer
-idna
-anyio
-
-# Image Processing
-pillow
-# Database
-psycopg2-binary
-
-# MySQL Drivers
-PyMySQL
-mysql-connector-python
-
-# Web Server
-gunicorn
-
-# Data Validation
-pydantic
-pydantic_core
-annotated-types
-jiter
-
-# Cryptography
-cryptography
-cffi
-pycparser
-
-# Utilities
-python-dotenv
-python-dateutil
-six
-packaging
-typing_extensions
-blinker
-annotated-doc
-colorama
-distro
-exceptiongroup
-fuzzywuzzy
-itsdangerous
-Jinja2
-Levenshtein
-MarkupSafe
-numpy
-python-Levenshtein
-RapidFuzz
-sniffio
-starlette
-tqdm
-typing-inspection
-uvicorn
-Werkzeug
+attr
