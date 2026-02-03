@@ -110,6 +110,13 @@ class ProductMySQLView(APIView):
             supermarket_id=supermarket_id,
         )
 
+        # Sort by updated_at (most recent first)
+        filtered_products = sorted(
+            filtered_products,
+            key=lambda p: p.get('updated_at') or '',
+            reverse=True
+        )
+
         # Pagination
         paginator = StandardResultsSetPagination()
         paginated_data = paginator.paginate_queryset(
