@@ -17,6 +17,10 @@ from .views.notification_product_views import (
     NotificationProductsDeleteView,
     ) # type: ignore
 from .views.notification import NotificationView # type: ignore
+from .views.shopping_views import (
+    ShoppingListCreateView,
+    ShoppingDetailView,
+) # type: ignore
 
 urlpatterns = [
     # categories
@@ -41,4 +45,7 @@ urlpatterns = [
     path('notification-products/<int:pk>/', NotificationProductsDeleteView.as_view(), name='notification-product-detail'),
     path('notifications/', NotificationView.as_view(), name='notifications'),
     
+    # Shopping can be added here in future
+    path('shopping/', ShoppingListCreateView.as_view(), name='shopping-list-create'),
+    path('shopping/<int:pk>/', ShoppingDetailView.as_view(), name='shopping-detail')
 ]

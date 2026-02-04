@@ -1,6 +1,8 @@
+import logging
+
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
-from rest_framework import permissions  # type: ignore
+from rest_framework import permissions, status  # type: ignore
 from rest_framework.pagination import PageNumberPagination  # type: ignore
 
 from django.core.cache import cache  # type: ignore
@@ -8,6 +10,8 @@ from django.conf import settings  # type: ignore
 
 from ..utils.fetch_mysql_data import DB_Query
 from ..tasks import PRODUCTS_CACHE_KEY
+
+logger = logging.getLogger(__name__)
 
 
 # =========================
@@ -34,12 +38,17 @@ def get_all_products_cached():
     """
     Fetch all products from cache or MySQL.
     Cache is populated on first request.
+    Returns None if database query fails.
     """
     data = cache.get(PRODUCTS_CACHE_KEY)
     if data is None:
-        query = "SELECT * FROM products;"
-        data = DB_Query(query=query)
-        cache.set(PRODUCTS_CACHE_KEY, data, PRODUCTS_CACHE_TIMEOUT)
+        try:
+            query = "SELECT * FROM products;"
+            data = DB_Query(query=query, read_timeout=600)
+            cache.set(PRODUCTS_CACHE_KEY, data, PRODUCTS_CACHE_TIMEOUT)
+        except Exception as e:
+            logger.error(f"Failed to fetch products from database: {e}")
+            return None
     return data
 
 
@@ -102,6 +111,12 @@ class ProductMySQLView(APIView):
         # Fetch cached products
         all_products = get_all_products_cached()
 
+        if all_products is None:
+            return Response(
+                {'error': 'Service temporarily unavailable. Please try again later.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
         # Apply filters
         filtered_products = filter_products(
             all_products,
@@ -134,6 +149,12 @@ class ProductDetailsView(APIView):
 
     def get(self, request, product_id):
         all_products = get_all_products_cached()
+
+        if all_products is None:
+            return Response(
+                {'error': 'Service temporarily unavailable. Please try again later.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
 
         # IMPORTANT: product_id comes as string → convert to int
         try:
