@@ -9,6 +9,13 @@ class ShoppingSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'product_id']
         read_only_fields = ['id','user']
         
+    def validate_product_id(self, value):
+        user = self.context['request'].user
+        exising_product_id = Shopping.objects.filter(user=user, product_id=value).exists()
+        
+        if exising_product_id:
+            raise serializers.ValidationError("This product is already in your shopping list.")
+        return value        
         
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -20,7 +27,7 @@ class ShoppingSerializer(serializers.ModelSerializer):
             
             product_match_ids = product_matching_service(
                 product_id=instance.product_id,
-                supermarket_id=133
+                supermarket_id=product.get('supermarket_id')
             )
             # representation['matched_product_ids'] = product_match_ids
             # Get full product details for matched IDs

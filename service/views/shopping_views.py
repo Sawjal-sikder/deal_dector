@@ -22,3 +22,10 @@ class ShoppingDetailView(generics.RetrieveDestroyAPIView):
 
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
+    
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return response.Response({
+            "message": "Shopping item deleted successfully."
+        }, status=status.HTTP_204_NO_CONTENT)
