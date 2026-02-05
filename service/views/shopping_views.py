@@ -28,7 +28,13 @@ class ShoppingListCreateView(generics.ListCreateAPIView):
                     "price": match.get('price'),
                     "image_url": match.get('image_url'),
                 })
-        return [supermarkets[key] for key in sorted(supermarkets)]
+        grouped = [supermarkets[key] for key in sorted(supermarkets)]
+        for group in grouped:
+            group["products"] = sorted(
+                group["products"],
+                key=lambda prod: prod.get('price') if prod.get('price') is not None else float('inf'),
+            )
+        return grouped
 
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)

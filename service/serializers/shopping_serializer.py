@@ -118,7 +118,29 @@ class ShoppingSerializer(serializers.ModelSerializer):
                             'price': None,
                             'image_url': 'None',
                         })
-                representation['matched_products'] = normalized_matches
+                if product and not any(
+                    item.get('id') == instance.product_id for item in normalized_matches
+                ):
+                    normalized_matches.append({
+                        'id': instance.product_id,
+                        'name': product.get('name'),
+                        'supermarket_id': product.get('supermarket_id'),
+                        'supermarket_name': supermarket_dict.get(
+                            product.get('supermarket_id'), {}
+                        ).get('name'),
+                        'price': product.get('price'),
+                        'image_url': product.get('image_url'),
+                    })
+                def _price_key(item):
+                    price = item.get('price')
+                    try:
+                        price_value = float(price)
+                    except (TypeError, ValueError):
+                        price_value = None
+                    return (price_value is None, price_value)
+
+                normalized_matches.sort(key=_price_key)
+                representation['matched_products'] = normalized_matches[:3]
             else:
                 representation['matched_products'] = None
         else:
