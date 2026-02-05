@@ -1,35 +1,61 @@
-from rest_framework import generics, permissions, response # type: ignore
-from ..models import NotificationProducts # type: ignore
-from ..serializers.notification_product import NotificationProductsSerializer # type: ignore
+from requests import Response
+from rest_framework import generics, permissions, response, status  # type: ignore
+from ..models import Notification # type: ignore
+from service.serializers.notification_product import NotificationSerializer # type: ignore
 
-class NotificationProductsListCreateView(generics.ListCreateAPIView):
-    queryset = NotificationProducts.objects.all()
-    serializer_class = NotificationProductsSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+class NotificationView(generics.ListCreateAPIView):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
+        queryset = self.get_queryset().order_by('-id')[:10]
         serializer = self.get_serializer(queryset, many=True)
-        data = [item for item in serializer.data if item is not None]
-        return response.Response(data)
-        
+        return response.Response(serializer.data)
     
-    
-class NotificationProductsDeleteView(generics.DestroyAPIView):
-    queryset = NotificationProducts.objects.all()
-    serializer_class = NotificationProductsSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-    def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
-    
+        return response.Response(
+            {
+                "message": "Notification created successfully",
+                "data": serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+
+class NotificationDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=partial
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return response.Response(
+            {
+                "message": "Notification updated successfully ",
+                "data": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        self.perform_destroy(instance)
-        return response.Response({"message": "Notification product deleted successfully."}, status=204)
+        instance.delete()
+
+        return response.Response(
+            {
+                "message": "Notification deleted successfully"
+            },
+            status=status.HTTP_204_NO_CONTENT
+        )
