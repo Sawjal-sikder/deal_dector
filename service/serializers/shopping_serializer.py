@@ -1,7 +1,9 @@
 from rest_framework import serializers # type: ignore
 from service.models import Shopping
+from service.serializers.notification_product import get_supermarkets_cached
 from service.utils.product_matching import product_matching_service
 from service.views.products_views import get_all_products_cached # type: ignore
+from django.core.cache import cache # type: ignore
 
 class ShoppingSerializer(serializers.ModelSerializer):
     class Meta:
@@ -35,12 +37,27 @@ class ShoppingSerializer(serializers.ModelSerializer):
                 p for p in products if p.get('id') in product_match_ids
                 
             ]
+
+            cache_key = 'all_supermarkets_dict'
+            supermarket_dict = cache.get(cache_key) or {}
+            if not supermarket_dict:
+                get_supermarkets_cached()
+                supermarket_dict = cache.get(cache_key)
+                
+            if supermarket_dict:
+                product_matches = [
+                    match for match in product_matches
+                    if match.get('supermarket_id') in supermarket_dict
+                ]
             
             product_matches = [
                 {
                     'id': match.get('id'),
                     'name': match.get('name'),
-                    'supermarket_id': match.get('supermarket_id'),
+                    # 'supermarket_id': match.get('supermarket_id'),
+                    'supermarket_name': supermarket_dict.get(
+                        match.get('supermarket_id'), {}
+                    ).get('name'),
                     'price': match.get('price'),
                     'image_url': match.get('image_url'),
                 }
