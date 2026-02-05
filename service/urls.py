@@ -2,6 +2,8 @@ from django.urls import path # type: ignore
 
 from service.views.category_views import CategoryMySQLView
 from service.views.supershop_views import SuperShopMySQLView # type: ignore
+from .views.notification import NotificationView # type: ignore
+from .views.selected_supermarket_views import SelectedSupermarketDetailView, SelectedSupermarketListCreateView # type: ignore
 from .views.products_views import (
     ProductMySQLView,
     RefreshProductsCacheView,
@@ -16,8 +18,8 @@ from .views.notification_product_views import (
     NotificationProductsListCreateView,
     NotificationProductsDeleteView,
     ) # type: ignore
-from .views.notification import NotificationView # type: ignore
 from .views.shopping_views import (
+    ListShoppingView,
     ShoppingListCreateView,
     ShoppingDetailView,
 ) # type: ignore
@@ -46,6 +48,11 @@ urlpatterns = [
     path('notifications/', NotificationView.as_view(), name='notifications'),
     
     # Shopping can be added here in future
+    path('shopping/list/', ListShoppingView.as_view(), name='shopping-list'),
     path('shopping/', ShoppingListCreateView.as_view(), name='shopping-list-create'),
-    path('shopping/<int:pk>/', ShoppingDetailView.as_view(), name='shopping-detail')
+    path('shopping/<int:pk>/', ShoppingDetailView.as_view(), name='shopping-detail'),
+    
+    # supermarket selection can be added here in future
+    path('selected-supermarkets/', SelectedSupermarketListCreateView.as_view(), name='selected-supermarkets'),
+    path('selected-supermarkets/<int:pk>/', SelectedSupermarketDetailView.as_view(), name='selected-supermarket-detail'),
 ]

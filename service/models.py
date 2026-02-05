@@ -33,3 +33,15 @@ class Shopping(models.Model):
         
     def __str__(self):
         return f"User {self.user_id} - Product {self.product_id}"
+    
+    
+    
+class SelectedSupermarket(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    supermarket_id = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+        
+    def __str__(self):
+        return f"User {self.user_id} - Supermarket {self.supermarket_id}"

@@ -1,14 +1,21 @@
 from rest_framework import serializers # type: ignore
-from service.models import Shopping
+from service.models import Shopping, SelectedSupermarket
 from service.serializers.notification_product import get_supermarkets_cached
 from service.utils.product_matching import product_matching_service
 from service.views.products_views import get_all_products_cached # type: ignore
 from django.core.cache import cache # type: ignore
 
 class ShoppingSerializer(serializers.ModelSerializer):
+    product_id = serializers.IntegerField(read_only=True)
+    product_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        write_only=True,
+        required=True
+    )
+
     class Meta:
         model = Shopping
-        fields = ['id', 'user', 'product_id']
+        fields = ['id', 'user', 'product_id', 'product_ids']
         read_only_fields = ['id','user']
         
     def validate_product_id(self, value):
@@ -18,6 +25,24 @@ class ShoppingSerializer(serializers.ModelSerializer):
         if exising_product_id:
             raise serializers.ValidationError("This product is already in your shopping list.")
         return value        
+
+    def validate(self, attrs):
+        product_ids = attrs.get('product_ids')
+        if not product_ids:
+            raise serializers.ValidationError({"product_ids": "Provide at least one product id."})
+        if len(product_ids) != len(set(product_ids)):
+            raise serializers.ValidationError({"product_ids": "Duplicate product ids are not allowed."})
+        user = self.context['request'].user
+        existing = set(
+            Shopping.objects.filter(user=user, product_id__in=product_ids)
+            .values_list('product_id', flat=True)
+        )
+        if existing:
+            existing_list = sorted(existing)
+            raise serializers.ValidationError({
+                "product_ids": f"These products are already in your shopping list: {existing_list}"
+            })
+        return attrs
         
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -49,25 +74,66 @@ class ShoppingSerializer(serializers.ModelSerializer):
                     match for match in product_matches
                     if match.get('supermarket_id') in supermarket_dict
                 ]
+
+            selected_supermarket_ids = list(
+                SelectedSupermarket.objects.filter(user=instance.user)
+                .values_list('supermarket_id', flat=True)
+            )
+            selected_supermarket_ids_set = set(selected_supermarket_ids)
+            if selected_supermarket_ids_set:
+                product_matches = [
+                    match for match in product_matches
+                    if match.get('supermarket_id') in selected_supermarket_ids_set
+                ]
+            else:
+                product_matches = []
             
-            product_matches = [
-                {
-                    'id': match.get('id'),
-                    'name': match.get('name'),
-                    # 'supermarket_id': match.get('supermarket_id'),
-                    'supermarket_name': supermarket_dict.get(
-                        match.get('supermarket_id'), {}
-                    ).get('name'),
-                    'price': match.get('price'),
-                    'image_url': match.get('image_url'),
+            if selected_supermarket_ids_set:
+                matches_by_supermarket = {
+                    match.get('supermarket_id'): match
+                    for match in product_matches
                 }
-                for match in product_matches
-            ]
-            
-            representation['matched_products'] = product_matches
+                normalized_matches = []
+                for supermarket_id in sorted(selected_supermarket_ids_set):
+                    match = matches_by_supermarket.get(supermarket_id)
+                    if match:
+                        normalized_matches.append({
+                            'id': match.get('id'),
+                            'name': match.get('name'),
+                            'supermarket_id': match.get('supermarket_id'),
+                            'supermarket_name': supermarket_dict.get(
+                                match.get('supermarket_id'), {}
+                            ).get('name'),
+                            'price': match.get('price'),
+                            'image_url': match.get('image_url'),
+                        })
+                    else:
+                        normalized_matches.append({
+                            'id': None,
+                            'name': 'None',
+                            'supermarket_id': supermarket_id,
+                            'supermarket_name': supermarket_dict.get(
+                                supermarket_id, {}
+                            ).get('name'),
+                            'price': None,
+                            'image_url': 'None',
+                        })
+                representation['matched_products'] = normalized_matches
+            else:
+                representation['matched_products'] = None
         else:
             representation["product_name"] = "Unknown Product"
             representation['matched_product_ids'] = []
             representation['matched_products'] = []
         
         return representation
+
+
+
+class ListShoppingSerializer(serializers.ModelSerializer):
+    product_id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Shopping
+        fields = ['id', 'user', 'product_id']
+        read_only_fields = ['id','user']
