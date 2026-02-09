@@ -37,7 +37,7 @@ class ShoppingListCreateView(generics.ListCreateAPIView):
         return grouped
 
     def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
+        return self.queryset.filter(user=self.request.user, is_shopping=True)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

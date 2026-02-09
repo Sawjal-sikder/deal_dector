@@ -27,6 +27,8 @@ class Notification(models.Model):
 class Shopping(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     product_id = models.IntegerField()
+    is_shopping = models.BooleanField(default=True)
+    is_purchased = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
