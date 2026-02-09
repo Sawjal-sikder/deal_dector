@@ -1,13 +1,10 @@
 import logging
-
 from rest_framework.views import APIView  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from rest_framework import permissions, status  # type: ignore
 from rest_framework.pagination import PageNumberPagination  # type: ignore
-
 from django.core.cache import cache  # type: ignore
 from django.conf import settings  # type: ignore
-
 from ..utils.fetch_mysql_data import DB_Query
 from ..tasks import PRODUCTS_CACHE_KEY
 
@@ -144,33 +141,6 @@ class ProductMySQLView(APIView):
 # =========================
 # Product details view
 # =========================
-class ProductDetailsView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request, product_id):
-        all_products = get_all_products_cached()
-
-        if all_products is None:
-            return Response(
-                {'error': 'Service temporarily unavailable. Please try again later.'},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
-
-        # IMPORTANT: product_id comes as string → convert to int
-        try:
-            product_id = int(product_id)
-        except ValueError:
-            return Response({'error': 'Invalid product id'}, status=400)
-
-        product = next(
-            (p for p in all_products if p.get('id') == product_id),
-            None
-        )
-
-        if product:
-            return Response(product)
-
-        return Response({'error': 'Product not found'}, status=404)
 
 
 # =========================

@@ -38,10 +38,13 @@ class ShoppingSerializer(serializers.ModelSerializer):
             .values_list('product_id', flat=True)
         )
         if existing:
-            existing_list = sorted(existing)
-            raise serializers.ValidationError({
-                "product_ids": f"These products are already in your shopping list: {existing_list}"
-            })
+            new_product_ids = [pid for pid in product_ids if pid not in existing]
+            if not new_product_ids:
+                existing_list = sorted(existing)
+                raise serializers.ValidationError({
+                    "product_ids": f"All products are already in your shopping list: {existing_list}"
+                })
+            attrs['product_ids'] = new_product_ids
         return attrs
         
     def to_representation(self, instance):

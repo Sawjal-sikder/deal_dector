@@ -78,10 +78,11 @@ class ShoppingDetailView(generics.RetrieveDestroyAPIView):
     queryset = Shopping.objects.all()
     serializer_class = ShoppingSerializer
     permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'product_id'
 
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
-    
+
     def delete(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)

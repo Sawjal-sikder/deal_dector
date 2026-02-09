@@ -3,10 +3,10 @@ from django.urls import path # type: ignore
 from service.views.category_views import CategoryMySQLView
 from service.views.supershop_views import SuperShopMySQLView # type: ignore
 from .views.selected_supermarket_views import SelectedSupermarketDetailView, SelectedSupermarketListCreateView # type: ignore
+from service.views.product_details_views import ProductDetailsView  # type: ignore
 from .views.products_views import (
     ProductMySQLView,
     RefreshProductsCacheView,
-    ProductDetailsView,
     )
 from .views.favorite_product_views import (
     FavoriteProductListCreateView,
@@ -49,7 +49,7 @@ urlpatterns = [
     # Shopping can be added here in future
     path('shopping/list/', ListShoppingView.as_view(), name='shopping-list'),
     path('shopping/', ShoppingListCreateView.as_view(), name='shopping-list-create'),
-    path('shopping/<int:pk>/', ShoppingDetailView.as_view(), name='shopping-detail'),
+    path('shopping/<int:product_id>/', ShoppingDetailView.as_view(), name='shopping-detail'),
     
     # supermarket selection can be added here in future
     path('selected-supermarkets/', SelectedSupermarketListCreateView.as_view(), name='selected-supermarkets'),
