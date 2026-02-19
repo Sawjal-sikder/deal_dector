@@ -72,6 +72,25 @@ class ShoppingListCreateView(generics.ListCreateAPIView):
         )
         grouped = self._group_by_supermarket(output.data)
         return response.Response(grouped, status=status.HTTP_200_OK)
+
+    def delete(self, request, *args, **kwargs):
+        product_ids = request.data.get('product_ids', [])
+
+        if not isinstance(product_ids, list) or not product_ids:
+            return response.Response({
+                "error": "product_ids must be a non-empty list."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Delete items that belong to the user with matching product_ids
+        deleted_count, _ = Shopping.objects.filter(
+            user=request.user,
+            product_id__in=product_ids
+        ).delete()
+
+        return response.Response({
+            "message": f"{deleted_count} shopping item(s) deleted successfully.",
+            "deleted_count": deleted_count
+        }, status=status.HTTP_200_OK)
         
         
 class ShoppingDetailView(generics.RetrieveDestroyAPIView):

@@ -2,7 +2,7 @@ services:
   web:
     build: .
     container_name: deal_web_app
-    entrypoint: ["/bin/bash", "/app/entrypoint.sh"]
+    # entrypoint: ["/bin/bash", "/app/entrypoint.sh"]
     command: gunicorn project.wsgi:application --bind 0.0.0.0:14003 --timeout 600 --workers 4
     ports:
       - "14003:14003"

@@ -1,6 +1,7 @@
 from django.urls import path # type: ignore
 
 from service.views.category_views import CategoryMySQLView
+from service.views.products_selected_supermarket_views import ProductsSelectedSupermarketViews
 from service.views.purchased_list_views import PurchasedListDeleteView, PurchasedListView, TotalPurchasePriceView
 from service.views.supershop_views import SuperShopMySQLView # type: ignore
 from .views.selected_supermarket_views import SelectedSupermarketDetailView, SelectedSupermarketListCreateView # type: ignore
@@ -30,6 +31,9 @@ urlpatterns = [
     
     # supermarkets
     path('supermarkets/', SuperShopMySQLView.as_view(), name='supermarkets-mysql'),
+    
+    # selected supermarket products can be added here in future
+    path('selected-supermarket-products/', ProductsSelectedSupermarketViews.as_view(), name='selected-supermarket-products'),
     
     # Products
     path('products/', ProductMySQLView.as_view(), name='products-mysql'),
